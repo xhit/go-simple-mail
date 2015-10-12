@@ -21,7 +21,7 @@ func main() {
 	email := mail.New()
 
 	email.SetFrom("From Example <from@example.com>")
-	email.AddTo("to@example.com>")
+	email.AddTo("to@example.com")
 	email.SetSubject("New Go Email")
 
 	email.SetBody("text/plain", "Hello Gophers!")
