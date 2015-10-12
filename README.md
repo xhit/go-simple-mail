@@ -41,7 +41,7 @@ func main() {
 
 	email.AddInline("/path/to/image.jpg")
 
-	err = email.Send("smtp.csgi.com:25")
+	err = email.Send("smtp.example.com:25")
 	
 	if err != nil {
 		fmt.Println(err)
