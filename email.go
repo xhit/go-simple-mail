@@ -281,7 +281,7 @@ func (email *Email) SetBody(contentType, body string) {
 	}
 }
 
-// Header adds the given "header" with the passed "value".
+// AddHeader adds the given "header" with the passed "value".
 func (email *Email) AddHeader(header string, values ...string) error {
 	// check that there is actually a value
 	if len(values) < 1 {
@@ -315,7 +315,7 @@ func (email *Email) AddHeader(header string, values ...string) error {
 	return nil
 }
 
-// Headers is used to add mulitple headers at once
+// AddHeaders is used to add mulitple headers at once
 func (email *Email) AddHeaders(headers textproto.MIMEHeader) error {
 	for header, values := range headers {
 		if err := email.AddHeader(header, values...); err != nil {
@@ -326,7 +326,7 @@ func (email *Email) AddHeaders(headers textproto.MIMEHeader) error {
 	return nil
 }
 
-// Alternative allows you to add alternative parts to the body
+// AddAlternative allows you to add alternative parts to the body
 // of the email message. This is most commonly used to add an
 // html version in addition to a plain text version that was
 // already added with SetBody.
@@ -339,7 +339,7 @@ func (email *Email) AddAlternative(contentType, body string) {
 	)
 }
 
-// Attach allows you to add an attachment to the email message.
+// AddAttachment allows you to add an attachment to the email message.
 // You can optionally provide a different name for the file.
 func (email *Email) AddAttachment(file string, name ...string) error {
 	if len(name) > 1 {
@@ -349,7 +349,7 @@ func (email *Email) AddAttachment(file string, name ...string) error {
 	return email.attach(file, false, name...)
 }
 
-// Inline allows you to add an inline attachment to the email message.
+// AddInline allows you to add an inline attachment to the email message.
 // You can optionally provide a different name for the file.
 func (email *Email) AddInline(file string, name ...string) error {
 	if len(name) > 1 {
