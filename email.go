@@ -8,15 +8,15 @@ import (
 	"io/ioutil"
 	"mime"
 	"net"
-	"net/textproto"
 	"net/mail"
 	"net/smtp"
+	"net/textproto"
 	"path/filepath"
 	"time"
 )
 
-// email represents an email message.
-type email struct {
+// Email represents an email message.
+type Email struct {
 	from           string
 	sender         string
 	replyTo        string
@@ -77,8 +77,8 @@ func (encoding encoding) String() string {
 }
 
 // New creates a new email. It uses UTF-8 by default.
-func New() *email {
-	email := &email{
+func New() *Email {
+	email := &Email{
 		headers:    make(textproto.MIMEHeader),
 		Charset:    "UTF-8",
 		Encoding:   EncodingQuotedPrintable,
@@ -92,46 +92,46 @@ func New() *email {
 }
 
 // SetFrom sets the From address.
-func (email *email) SetFrom(address string) error {
+func (email *Email) SetFrom(address string) error {
 	return email.AddAddresses("From", address)
 }
 
 // SetSender sets the Sender address.
-func (email *email) SetSender(address string) error {
+func (email *Email) SetSender(address string) error {
 	return email.AddAddresses("Sender", address)
 }
 
 // SetReplyTo sets the Reply-To address.
-func (email *email) SetReplyTo(address string) error {
+func (email *Email) SetReplyTo(address string) error {
 	return email.AddAddresses("Reply-To", address)
 }
 
 // SetReturnPath sets the Return-Path address. This is most often used
 // to send bounced emails to a different email address.
-func (email *email) SetReturnPath(address string) error {
+func (email *Email) SetReturnPath(address string) error {
 	return email.AddAddresses("Return-Path", address)
 }
 
 // AddTo adds a To address. You can provide multiple
 // addresses at the same time.
-func (email *email) AddTo(addresses ...string) error {
+func (email *Email) AddTo(addresses ...string) error {
 	return email.AddAddresses("To", addresses...)
 }
 
 // AddCc adds a Cc address. You can provide multiple
 // addresses at the same time.
-func (email *email) AddCc(addresses ...string) error {
+func (email *Email) AddCc(addresses ...string) error {
 	return email.AddAddresses("Cc", addresses...)
 }
 
 // AddBcc adds a Bcc address. You can provide multiple
 // addresses at the same time.
-func (email *email) AddBcc(addresses ...string) error {
+func (email *Email) AddBcc(addresses ...string) error {
 	return email.AddAddresses("Bcc", addresses...)
 }
 
 // AddAddresses allows you to add addresses to the specified address header.
-func (email *email) AddAddresses(header string, addresses ...string) error {
+func (email *Email) AddAddresses(header string, addresses ...string) error {
 	found := false
 
 	// check for a valid address header
@@ -228,7 +228,7 @@ func (priority priority) String() string {
 
 // SetPriority sets the email message priority. Use with
 // either "High" or "Low".
-func (email *email) SetPriority(priority priority) error {
+func (email *Email) SetPriority(priority priority) error {
 	switch priority {
 	case PriorityHigh:
 		return email.AddHeaders(textproto.MIMEHeader{
@@ -252,7 +252,7 @@ func (email *email) SetPriority(priority priority) error {
 // The format of the string should be YYYY-MM-DD HH:MM:SS Time Zone.
 //
 // Example: SetDate("2015-04-28 10:32:00 CDT")
-func (email *email) SetDate(dateTime string) error {
+func (email *Email) SetDate(dateTime string) error {
 	const dateFormat = "2006-01-02 15:04:05 MST"
 
 	// Try to parse the provided date/time
@@ -267,12 +267,12 @@ func (email *email) SetDate(dateTime string) error {
 }
 
 // SetSubject sets the subject of the email message.
-func (email *email) SetSubject(subject string) error {
+func (email *Email) SetSubject(subject string) error {
 	return email.AddHeader("Subject", subject)
 }
 
 // SetBody sets the body of the email message.
-func (email *email) SetBody(contentType, body string) {
+func (email *Email) SetBody(contentType, body string) {
 	email.parts = []part{
 		part{
 			contentType: contentType,
@@ -282,7 +282,7 @@ func (email *email) SetBody(contentType, body string) {
 }
 
 // Header adds the given "header" with the passed "value".
-func (email *email) AddHeader(header string, values ...string) error {
+func (email *Email) AddHeader(header string, values ...string) error {
 	// check that there is actually a value
 	if len(values) < 1 {
 		return errors.New("Mail Error: no value provided; Header: [" + header + "]")
@@ -316,7 +316,7 @@ func (email *email) AddHeader(header string, values ...string) error {
 }
 
 // Headers is used to add mulitple headers at once
-func (email *email) AddHeaders(headers textproto.MIMEHeader) error {
+func (email *Email) AddHeaders(headers textproto.MIMEHeader) error {
 	for header, values := range headers {
 		if err := email.AddHeader(header, values...); err != nil {
 			return err
@@ -330,7 +330,7 @@ func (email *email) AddHeaders(headers textproto.MIMEHeader) error {
 // of the email message. This is most commonly used to add an
 // html version in addition to a plain text version that was
 // already added with SetBody.
-func (email *email) AddAlternative(contentType, body string) {
+func (email *Email) AddAlternative(contentType, body string) {
 	email.parts = append(email.parts,
 		part{
 			contentType: contentType,
@@ -341,7 +341,7 @@ func (email *email) AddAlternative(contentType, body string) {
 
 // Attach allows you to add an attachment to the email message.
 // You can optionally provide a different name for the file.
-func (email *email) AddAttachment(file string, name ...string) error {
+func (email *Email) AddAttachment(file string, name ...string) error {
 	if len(name) > 1 {
 		return errors.New("Mail Error: Attach can only have a file and an optional name")
 	}
@@ -351,7 +351,7 @@ func (email *email) AddAttachment(file string, name ...string) error {
 
 // Inline allows you to add an inline attachment to the email message.
 // You can optionally provide a different name for the file.
-func (email *email) AddInline(file string, name ...string) error {
+func (email *Email) AddInline(file string, name ...string) error {
 	if len(name) > 1 {
 		return errors.New("Mail Error: Inline can only have a file and an optional name")
 	}
@@ -360,7 +360,7 @@ func (email *email) AddInline(file string, name ...string) error {
 }
 
 // attach does the low level attaching of the files
-func (email *email) attach(f string, inline bool, name ...string) error {
+func (email *Email) attach(f string, inline bool, name ...string) error {
 	// Get the file data
 	data, err := ioutil.ReadFile(f)
 	if err != nil {
@@ -399,7 +399,7 @@ func (email *email) attach(f string, inline bool, name ...string) error {
 }
 
 // getFrom returns the sender of the email, if any
-func (email *email) getFrom() string {
+func (email *Email) getFrom() string {
 	from := email.returnPath
 	if from == "" {
 		from = email.sender
@@ -414,20 +414,20 @@ func (email *email) getFrom() string {
 	return from
 }
 
-func (email *email) hasMixedPart() bool {
+func (email *Email) hasMixedPart() bool {
 	return (len(email.parts) > 0 && len(email.attachments) > 0) || len(email.attachments) > 1
 }
 
-func (email *email) hasRelatedPart() bool {
+func (email *Email) hasRelatedPart() bool {
 	return (len(email.parts) > 0 && len(email.inlines) > 0) || len(email.inlines) > 1
 }
 
-func (email *email) hasAlternativePart() bool {
+func (email *Email) hasAlternativePart() bool {
 	return len(email.parts) > 1
 }
 
 // GetMessage builds and returns the email message
-func (email *email) GetMessage() string {
+func (email *Email) GetMessage() string {
 	msg := newMessage(email)
 
 	if email.hasMixedPart() {
@@ -464,7 +464,7 @@ func (email *email) GetMessage() string {
 }
 
 // Send sends the composed email
-func (email *email) Send(address string) error {
+func (email *Email) Send(address string) error {
 	var auth smtp.Auth
 
 	from := email.getFrom()
@@ -494,27 +494,27 @@ func (email *email) Send(address string) error {
 func dial(host string, port string, encryption encryption, config *tls.Config) (*smtp.Client, error) {
 	var conn net.Conn
 	var err error
-	
+
 	address := host + ":" + port
-	
+
 	// do the actual dial
 	switch encryption {
-		case EncryptionSSL:
-			conn, err = tls.Dial("tcp", address, config)
-		default:
-			conn, err = net.Dial("tcp", address)
+	case EncryptionSSL:
+		conn, err = tls.Dial("tcp", address, config)
+	default:
+		conn, err = net.Dial("tcp", address)
 	}
-	
+
 	if err != nil {
 		return nil, errors.New("Mail Error on dailing with encryption type " + encryption.String() + ": " + err.Error())
 	}
 
 	c, err := smtp.NewClient(conn, host)
-	
+
 	if err != nil {
 		return nil, errors.New("Mail Error on smtp dial: " + err.Error())
 	}
-	
+
 	return c, err
 }
 
@@ -539,8 +539,8 @@ func smtpConnect(host string, port string, from string, to []string, msg string,
 		if ok, _ := c.Extension("STARTTLS"); ok {
 			if config.ServerName == "" {
 				config = &tls.Config{ServerName: host}
-			} 
-			
+			}
+
 			if err = c.StartTLS(config); err != nil {
 				c.Close()
 				return nil, errors.New("Mail Error on Start TLS: " + err.Error())
@@ -571,7 +571,7 @@ func send(host string, port string, from string, to []string, msg string, auth s
 	var smtpConnectChannel chan smtpConnectErrorChannel
 	var c *smtp.Client = nil
 	var err error
-	
+
 	// set the timeout value
 	timeout := time.Duration(connectTimeout) * time.Second
 
@@ -606,7 +606,7 @@ func send(host string, port string, from string, to []string, msg string, auth s
 	if err != nil {
 		return err
 	}
-	
+
 	defer c.Close()
 
 	// Set the sender

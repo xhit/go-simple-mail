@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/base64"
 	"io"
-	"github.com/joegrasse/mime/header"
 	"mime/multipart"
 	"mime/quotedprintable"
 	"net/textproto"
@@ -12,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/joegrasse/mime/header"
 )
 
 type message struct {
@@ -24,7 +25,7 @@ type message struct {
 	encoding encoding
 }
 
-func newMessage(email *email) *message {
+func newMessage(email *Email) *message {
 	return &message{
 		headers:  email.headers,
 		body:     new(bytes.Buffer),
@@ -36,20 +37,20 @@ func newMessage(email *email) *message {
 func encodeHeader(text string, charset string, usedChars int) string {
 	// create buffer
 	buf := new(bytes.Buffer)
-	
+
 	// encode
 	encoder := header.NewEncoder(buf, charset, usedChars)
 	encoder.Encode([]byte(text))
 
 	return buf.String()
-	
+
 	/*
-		switch encoding {
-		case EncodingBase64:
-			return mime.BEncoding.Encode(charset, text)
-		default:
-			return mime.QEncoding.Encode(charset, text)
-	}
+			switch encoding {
+			case EncodingBase64:
+				return mime.BEncoding.Encode(charset, text)
+			default:
+				return mime.QEncoding.Encode(charset, text)
+		}
 	*/
 }
 
@@ -62,7 +63,7 @@ func (msg *message) getHeaders() (headers string) {
 
 	// encode and combine the headers
 	for header, values := range msg.headers {
-		headers += header + ": " + encodeHeader(strings.Join(values, ", "), msg.charset, len(header) + 2) + "\r\n"
+		headers += header + ": " + encodeHeader(strings.Join(values, ", "), msg.charset, len(header)+2) + "\r\n"
 	}
 
 	headers = headers + "\r\n"
@@ -147,12 +148,12 @@ func base64Encode(text []byte) []byte {
 func qpEncode(text []byte) []byte {
 	// create buffer
 	buf := new(bytes.Buffer)
-	
+
 	encoder := quotedprintable.NewWriter(buf)
-	
+
 	encoder.Write(text)
 	encoder.Close()
-	
+
 	return buf.Bytes()
 }
 
