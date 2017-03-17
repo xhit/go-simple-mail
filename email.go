@@ -51,8 +51,11 @@ type file struct {
 type encryption int
 
 const (
+	// EncryptionTLS sets encryption type to TLS when sending email
 	EncryptionTLS encryption = iota
+	// EncryptionSSL sets encryption type to SSL when sending email
 	EncryptionSSL
+	// EncryptionNone uses no encryption when sending email
 	EncryptionNone
 )
 
@@ -65,8 +68,11 @@ func (encryption encryption) String() string {
 type encoding int
 
 const (
+	// EncodingQuotedPrintable sets the message body encoding to quoted-printable
 	EncodingQuotedPrintable encoding = iota
+	// EncodingBase64 sets the message body encoding to base64
 	EncodingBase64
+	// EncodingNone turns off encoding on the message body
 	EncodingNone
 )
 
@@ -216,7 +222,9 @@ func addAddress(addressList []string, address string) ([]string, error) {
 type priority int
 
 const (
+	// PriorityHigh sets the email priority to High
 	PriorityHigh priority = iota
+	// PriorityLow sets the email priority to Low
 	PriorityLow
 )
 
@@ -569,7 +577,7 @@ type smtpConnectErrorChannel struct {
 // send does the low level sending of the email
 func send(host string, port string, from string, to []string, msg string, auth smtp.Auth, encryption encryption, config *tls.Config, connectTimeout int) error {
 	var smtpConnectChannel chan smtpConnectErrorChannel
-	var c *smtp.Client = nil
+	var c *smtp.Client
 	var err error
 
 	// set the timeout value
