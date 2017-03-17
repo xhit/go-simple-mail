@@ -33,6 +33,7 @@ type Email struct {
 	Password       string
 	TLSConfig      *tls.Config
 	ConnectTimeout int
+	Error          error
 }
 
 // part represents the different content parts of an email body.
@@ -97,47 +98,98 @@ func New() *Email {
 	return email
 }
 
+// GetError returns the first email error encountered
+func (email *Email) GetError() error {
+	return email.Error
+}
+
 // SetFrom sets the From address.
-func (email *Email) SetFrom(address string) error {
-	return email.AddAddresses("From", address)
+func (email *Email) SetFrom(address string) *Email {
+	if email.Error != nil {
+		return email
+	}
+
+	email.AddAddresses("From", address)
+
+	return email
 }
 
 // SetSender sets the Sender address.
-func (email *Email) SetSender(address string) error {
-	return email.AddAddresses("Sender", address)
+func (email *Email) SetSender(address string) *Email {
+	if email.Error != nil {
+		return email
+	}
+
+	email.AddAddresses("Sender", address)
+
+	return email
 }
 
 // SetReplyTo sets the Reply-To address.
-func (email *Email) SetReplyTo(address string) error {
-	return email.AddAddresses("Reply-To", address)
+func (email *Email) SetReplyTo(address string) *Email {
+	if email.Error != nil {
+		return email
+	}
+
+	email.AddAddresses("Reply-To", address)
+
+	return email
 }
 
 // SetReturnPath sets the Return-Path address. This is most often used
 // to send bounced emails to a different email address.
-func (email *Email) SetReturnPath(address string) error {
-	return email.AddAddresses("Return-Path", address)
+func (email *Email) SetReturnPath(address string) *Email {
+	if email.Error != nil {
+		return email
+	}
+
+	email.AddAddresses("Return-Path", address)
+
+	return email
 }
 
 // AddTo adds a To address. You can provide multiple
 // addresses at the same time.
-func (email *Email) AddTo(addresses ...string) error {
-	return email.AddAddresses("To", addresses...)
+func (email *Email) AddTo(addresses ...string) *Email {
+	if email.Error != nil {
+		return email
+	}
+
+	email.AddAddresses("To", addresses...)
+
+	return email
 }
 
 // AddCc adds a Cc address. You can provide multiple
 // addresses at the same time.
-func (email *Email) AddCc(addresses ...string) error {
-	return email.AddAddresses("Cc", addresses...)
+func (email *Email) AddCc(addresses ...string) *Email {
+	if email.Error != nil {
+		return email
+	}
+
+	email.AddAddresses("Cc", addresses...)
+
+	return email
 }
 
 // AddBcc adds a Bcc address. You can provide multiple
 // addresses at the same time.
-func (email *Email) AddBcc(addresses ...string) error {
-	return email.AddAddresses("Bcc", addresses...)
+func (email *Email) AddBcc(addresses ...string) *Email {
+	if email.Error != nil {
+		return email
+	}
+
+	email.AddAddresses("Bcc", addresses...)
+
+	return email
 }
 
 // AddAddresses allows you to add addresses to the specified address header.
-func (email *Email) AddAddresses(header string, addresses ...string) error {
+func (email *Email) AddAddresses(header string, addresses ...string) *Email {
+	if email.Error != nil {
+		return email
+	}
+
 	found := false
 
 	// check for a valid address header
@@ -148,14 +200,16 @@ func (email *Email) AddAddresses(header string, addresses ...string) error {
 	}
 
 	if !found {
-		return errors.New("Mail Error: Invalid address header; Header: [" + header + "]")
+		email.Error = errors.New("Mail Error: Invalid address header; Header: [" + header + "]")
+		return email
 	}
 
 	// check to see if the addresses are valid
 	for i := range addresses {
 		address, err := mail.ParseAddress(addresses[i])
 		if err != nil {
-			return errors.New("Mail Error: " + err.Error() + "; Header: [" + header + "] Address: [" + addresses[i] + "]")
+			email.Error = errors.New("Mail Error: " + err.Error() + "; Header: [" + header + "] Address: [" + addresses[i] + "]")
+			return email
 		}
 
 		// check for more than one address
@@ -167,7 +221,8 @@ func (email *Email) AddAddresses(header string, addresses ...string) error {
 		case header == "Reply-To" && len(email.replyTo) > 0:
 			fallthrough
 		case header == "Return-Path" && len(email.returnPath) > 0:
-			return errors.New("Mail Error: There can only be one \"" + header + "\" address; Header: [" + header + "] Address: [" + addresses[i] + "]")
+			email.Error = errors.New("Mail Error: There can only be one \"" + header + "\" address; Header: [" + header + "] Address: [" + addresses[i] + "]")
+			return email
 		default:
 			// other address types can have more than one address
 		}
@@ -186,7 +241,8 @@ func (email *Email) AddAddresses(header string, addresses ...string) error {
 			// check that the address was added to the recipients list
 			email.recipients, err = addAddress(email.recipients, address.Address)
 			if err != nil {
-				return errors.New("Mail Error: " + err.Error() + "; Header: [" + header + "] Address: [" + addresses[i] + "]")
+				email.Error = errors.New("Mail Error: " + err.Error() + "; Header: [" + header + "] Address: [" + addresses[i] + "]")
+				return email
 			}
 		}
 
@@ -194,7 +250,8 @@ func (email *Email) AddAddresses(header string, addresses ...string) error {
 		if email.from != "" && email.sender != "" && email.from == email.sender {
 			email.sender = ""
 			email.headers.Del("Sender")
-			return errors.New("Mail Error: From and Sender should not be set to the same address.")
+			email.Error = errors.New("Mail Error: From and Sender should not be set to the same address.")
+			return email
 		}
 
 		// add all addresses to the headers except for Bcc and Return-Path
@@ -204,7 +261,7 @@ func (email *Email) AddAddresses(header string, addresses ...string) error {
 		}
 	}
 
-	return nil
+	return email
 }
 
 // addAddress adds an address to the address list if it hasn't already been added
@@ -236,16 +293,20 @@ func (priority priority) String() string {
 
 // SetPriority sets the email message priority. Use with
 // either "High" or "Low".
-func (email *Email) SetPriority(priority priority) error {
+func (email *Email) SetPriority(priority priority) *Email {
+	if email.Error != nil {
+		return email
+	}
+
 	switch priority {
 	case PriorityHigh:
-		return email.AddHeaders(textproto.MIMEHeader{
+		email.AddHeaders(textproto.MIMEHeader{
 			"X-Priority":        {"1 (Highest)"},
 			"X-MSMail-Priority": {"High"},
 			"Importance":        {"High"},
 		})
 	case PriorityLow:
-		return email.AddHeaders(textproto.MIMEHeader{
+		email.AddHeaders(textproto.MIMEHeader{
 			"X-Priority":        {"5 (Lowest)"},
 			"X-MSMail-Priority": {"Low"},
 			"Importance":        {"Low"},
@@ -253,47 +314,69 @@ func (email *Email) SetPriority(priority priority) error {
 	default:
 	}
 
-	return nil
+	return email
 }
 
 // SetDate sets the date header to the provided date/time.
 // The format of the string should be YYYY-MM-DD HH:MM:SS Time Zone.
 //
 // Example: SetDate("2015-04-28 10:32:00 CDT")
-func (email *Email) SetDate(dateTime string) error {
+func (email *Email) SetDate(dateTime string) *Email {
+	if email.Error != nil {
+		return email
+	}
+
 	const dateFormat = "2006-01-02 15:04:05 MST"
 
 	// Try to parse the provided date/time
 	dt, err := time.Parse(dateFormat, dateTime)
 	if err != nil {
-		return errors.New("Mail Error: Setting date failed with: " + err.Error())
+		email.Error = errors.New("Mail Error: Setting date failed with: " + err.Error())
+		return email
 	}
 
 	email.headers.Set("Date", dt.Format(time.RFC1123Z))
 
-	return nil
+	return email
 }
 
 // SetSubject sets the subject of the email message.
-func (email *Email) SetSubject(subject string) error {
-	return email.AddHeader("Subject", subject)
+func (email *Email) SetSubject(subject string) *Email {
+	if email.Error != nil {
+		return email
+	}
+
+	email.AddHeader("Subject", subject)
+
+	return email
 }
 
 // SetBody sets the body of the email message.
-func (email *Email) SetBody(contentType, body string) {
+func (email *Email) SetBody(contentType, body string) *Email {
+	if email.Error != nil {
+		return email
+	}
+
 	email.parts = []part{
 		part{
 			contentType: contentType,
 			body:        bytes.NewBufferString(body),
 		},
 	}
+
+	return email
 }
 
 // AddHeader adds the given "header" with the passed "value".
-func (email *Email) AddHeader(header string, values ...string) error {
+func (email *Email) AddHeader(header string, values ...string) *Email {
+	if email.Error != nil {
+		return email
+	}
+
 	// check that there is actually a value
 	if len(values) < 1 {
-		return errors.New("Mail Error: no value provided; Header: [" + header + "]")
+		email.Error = errors.New("Mail Error: no value provided; Header: [" + header + "]")
+		return email
 	}
 
 	switch header {
@@ -310,61 +393,84 @@ func (email *Email) AddHeader(header string, values ...string) error {
 	case "Reply-To":
 		fallthrough
 	case "Return-Path":
-		return email.AddAddresses(header, values...)
+		email.AddAddresses(header, values...)
 	case "Date":
 		if len(values) > 1 {
-			return errors.New("Mail Error: To many dates provided")
+			email.Error = errors.New("Mail Error: To many dates provided")
+			return email
 		}
-		return email.SetDate(values[0])
+		email.SetDate(values[0])
 	default:
 		email.headers[header] = values
 	}
 
-	return nil
+	return email
 }
 
 // AddHeaders is used to add mulitple headers at once
-func (email *Email) AddHeaders(headers textproto.MIMEHeader) error {
-	for header, values := range headers {
-		if err := email.AddHeader(header, values...); err != nil {
-			return err
-		}
+func (email *Email) AddHeaders(headers textproto.MIMEHeader) *Email {
+	if email.Error != nil {
+		return email
 	}
 
-	return nil
+	for header, values := range headers {
+		email.AddHeader(header, values...)
+	}
+
+	return email
 }
 
 // AddAlternative allows you to add alternative parts to the body
 // of the email message. This is most commonly used to add an
 // html version in addition to a plain text version that was
 // already added with SetBody.
-func (email *Email) AddAlternative(contentType, body string) {
+func (email *Email) AddAlternative(contentType, body string) *Email {
+	if email.Error != nil {
+		return email
+	}
+
 	email.parts = append(email.parts,
 		part{
 			contentType: contentType,
 			body:        bytes.NewBufferString(body),
 		},
 	)
+
+	return email
 }
 
 // AddAttachment allows you to add an attachment to the email message.
 // You can optionally provide a different name for the file.
-func (email *Email) AddAttachment(file string, name ...string) error {
-	if len(name) > 1 {
-		return errors.New("Mail Error: Attach can only have a file and an optional name")
+func (email *Email) AddAttachment(file string, name ...string) *Email {
+	if email.Error != nil {
+		return email
 	}
 
-	return email.attach(file, false, name...)
+	if len(name) > 1 {
+		email.Error = errors.New("Mail Error: Attach can only have a file and an optional name")
+		return email
+	}
+
+	email.Error = email.attach(file, false, name...)
+
+	return email
 }
 
 // AddInline allows you to add an inline attachment to the email message.
 // You can optionally provide a different name for the file.
-func (email *Email) AddInline(file string, name ...string) error {
-	if len(name) > 1 {
-		return errors.New("Mail Error: Inline can only have a file and an optional name")
+func (email *Email) AddInline(file string, name ...string) *Email {
+	if email.Error != nil {
+		return email
 	}
 
-	return email.attach(file, true, name...)
+	if len(name) > 1 {
+		email.Error = errors.New("Mail Error: Inline can only have a file and an optional name")
+		return email
+	}
+
+	email.Error = email.attach(file, true, name...)
+
+	return email
 }
 
 // attach does the low level attaching of the files
@@ -473,6 +579,10 @@ func (email *Email) GetMessage() string {
 
 // Send sends the composed email
 func (email *Email) Send(address string) error {
+	if email.Error != nil {
+		return email.Error
+	}
+
 	var auth smtp.Auth
 
 	from := email.getFrom()
