@@ -3,7 +3,7 @@ The best way to send emails in Go.
 **Download**
 
 ```bash
-go get github.com/joegrasse/mail
+go get -u github.com/joegrasse/mail
 ```
 
 **Basic Usage**
