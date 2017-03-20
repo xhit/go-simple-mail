@@ -41,17 +41,17 @@ import (
 
 func main() {
 	htmlBody :=
-		`<html>
+`<html>
 	<head>
-	   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-	   <title>Hello Gophers!</title>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		<title>Hello Gophers!</title>
 	</head>
 	<body>
-	   <p>This is the <b>Go gopher</b>.</p>
-	   <p><img src="cid:Gopher.png" alt="Go gopher" /></p>
-		 <p>Image created by Renee French</p>
+		<p>This is the <b>Go gopher</b>.</p>
+		<p><img src="cid:Gopher.png" alt="Go gopher" /></p>
+		<p>Image created by Renee French</p>
 	</body>
-	</html>`
+</html>`
 
 	email := mail.New()
 	email.SetPriority(mail.PriorityHigh)
