@@ -60,7 +60,10 @@ func main() {
 
 	email := mail.New()
 	email.SetPriority(mail.PriorityHigh)
-	email.SetFrom("From Example <from@example.com>").AddTo("to@example.com").AddCc("otherto@example.com").SetSubject("New Go Email")
+	email.SetFrom("From Example <from@example.com>").
+		AddTo("to@example.com").
+		AddCc("otherto@example.com").
+		SetSubject("New Go Email")
 
 	email.SetBody("text/plain", "Hello Gophers!")
 	email.AddAlternative("text/html", htmlBody)
