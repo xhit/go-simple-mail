@@ -17,23 +17,32 @@ import (
 
 // Email represents an email message.
 type Email struct {
-	from           string
-	sender         string
-	replyTo        string
-	returnPath     string
-	recipients     []string
-	headers        textproto.MIMEHeader
-	parts          []part
-	attachments    []*file
-	inlines        []*file
-	Charset        string
-	Encoding       encoding
+	from        string
+	sender      string
+	replyTo     string
+	returnPath  string
+	recipients  []string
+	headers     textproto.MIMEHeader
+	parts       []part
+	attachments []*file
+	inlines     []*file
+	Charset     string
+	Encoding    encoding
+	Error       error
+	SMTPServer  *smtp.Client
+}
+
+//SMTPServer represents a SMTP Server
+type SMTPServer struct {
+	// From           string
 	Encryption     encryption
 	Username       string
 	Password       string
-	TLSConfig      *tls.Config
 	ConnectTimeout int
-	Error          error
+	SendTimeout    int
+	Host           string
+	Port           int
+	KeepAlive      bool
 }
 
 // part represents the different content parts of an email body.
@@ -86,16 +95,20 @@ func (encoding encoding) String() string {
 // New creates a new email. It uses UTF-8 by default.
 func New() *Email {
 	email := &Email{
-		headers:    make(textproto.MIMEHeader),
-		Charset:    "UTF-8",
-		Encoding:   EncodingQuotedPrintable,
-		Encryption: EncryptionNone,
-		TLSConfig:  new(tls.Config),
+		headers:  make(textproto.MIMEHeader),
+		Charset:  "UTF-8",
+		Encoding: EncodingQuotedPrintable,
 	}
 
 	email.AddHeader("MIME-Version", "1.0")
 
 	return email
+}
+
+//NewSMTPServer returns the client for send email
+func NewSMTPServer() *SMTPServer {
+	server := &SMTPServer{}
+	return server
 }
 
 // GetError returns the first email error encountered
@@ -250,7 +263,7 @@ func (email *Email) AddAddresses(header string, addresses ...string) *Email {
 		if email.from != "" && email.sender != "" && email.from == email.sender {
 			email.sender = ""
 			email.headers.Del("Sender")
-			email.Error = errors.New("Mail Error: From and Sender should not be set to the same address.")
+			email.Error = errors.New("Mail Error: From and Sender should not be set to the same address")
 			return email
 		}
 
@@ -578,34 +591,20 @@ func (email *Email) GetMessage() string {
 }
 
 // Send sends the composed email
-func (email *Email) Send(address string) error {
+func (email *Email) Send(c *smtp.Client, server *SMTPServer) error {
+
 	if email.Error != nil {
 		return email.Error
 	}
 
-	var auth smtp.Auth
-
-	from := email.getFrom()
-	if from == "" {
-		return errors.New(`Mail Error: No "From" address specified.`)
-	}
-
 	if len(email.recipients) < 1 {
-		return errors.New("Mail Error: No recipient specified.")
+		return errors.New("Mail Error: No recipient specified")
 	}
 
 	msg := email.GetMessage()
 
-	host, port, err := net.SplitHostPort(address)
-	if err != nil {
-		return errors.New("Mail Error: " + err.Error())
-	}
+	return send(email.from, email.recipients, msg, server.SendTimeout, c, server.KeepAlive)
 
-	if email.Username != "" || email.Password != "" {
-		auth = smtp.PlainAuth("", email.Username, email.Password, host)
-	}
-
-	return send(host, port, from, email.recipients, msg, auth, email.Encryption, email.TLSConfig, email.ConnectTimeout)
 }
 
 // dial connects to the smtp server with the request encryption type
@@ -638,7 +637,7 @@ func dial(host string, port string, encryption encryption, config *tls.Config) (
 
 // smtpConnect connects to the smtp server and starts TLS and passes auth
 // if necessary
-func smtpConnect(host string, port string, from string, to []string, msg string, auth smtp.Auth, encryption encryption, config *tls.Config) (*smtp.Client, error) {
+func smtpConnect(host string, port string, auth smtp.Auth, encryption encryption, config *tls.Config) (*smtp.Client, error) {
 	// connect to the mail server
 	c, err := dial(host, port, encryption, config)
 
@@ -684,20 +683,27 @@ type smtpConnectErrorChannel struct {
 	err    error
 }
 
-// send does the low level sending of the email
-func send(host string, port string, from string, to []string, msg string, auth smtp.Auth, encryption encryption, config *tls.Config, connectTimeout int) error {
+//Connect returns the smtp client
+func (server *SMTPServer) Connect() (*smtp.Client, error) {
+
+	var auth smtp.Auth
+
+	if server.Username != "" || server.Password != "" {
+		auth = smtp.PlainAuth("", server.Username, server.Password, server.Host)
+	}
+
 	var smtpConnectChannel chan smtpConnectErrorChannel
 	var c *smtp.Client
 	var err error
 
 	// set the timeout value
-	timeout := time.Duration(connectTimeout) * time.Second
+	timeout := time.Duration(server.ConnectTimeout) * time.Second
 
 	// if there is a timeout, setup the channel and do the connect under a goroutine
 	if timeout != 0 {
 		smtpConnectChannel = make(chan smtpConnectErrorChannel, 2)
 		go func() {
-			c, err = smtpConnect(host, port, from, to, msg, auth, encryption, config)
+			c, err = smtpConnect(server.Host, fmt.Sprintf("%d", server.Port), auth, server.Encryption, new(tls.Config))
 			// send the result
 			smtpConnectChannel <- smtpConnectErrorChannel{
 				client: c,
@@ -708,7 +714,7 @@ func send(host string, port string, from string, to []string, msg string, auth s
 
 	if timeout == 0 {
 		// no timeout, just fire the connect
-		c, err = smtpConnect(host, port, from, to, msg, auth, encryption, config)
+		c, err = smtpConnect(server.Host, fmt.Sprintf("%d", server.Port), auth, server.Encryption, new(tls.Config))
 	} else {
 		// get the connect result or timeout result, which ever happens first
 		select {
@@ -716,45 +722,71 @@ func send(host string, port string, from string, to []string, msg string, auth s
 			c = result.client
 			err = result.err
 		case <-time.After(timeout):
-			return errors.New("Mail Error: SMTP Connection timed out")
+			return nil, errors.New("Mail Error: SMTP Connection timed out")
 		}
 	}
 
-	// check for connect error
-	if err != nil {
-		return err
-	}
+	return c, nil
+}
 
-	defer c.Close()
+// send does the low level sending of the email
+func send(from string, to []string, msg string, sendTimeout int, c *smtp.Client, keepAlive bool) error {
+	var smtpSendChannel chan error
 
-	// Set the sender
-	if err := c.Mail(from); err != nil {
-		return err
-	}
+	// set the timeout value
+	timeout := time.Duration(sendTimeout) * time.Second
 
-	// Set the recipients
-	for _, address := range to {
-		if err := c.Rcpt(address); err != nil {
-			return err
+	smtpSendChannel = make(chan error, 1)
+
+	go func() {
+		// Set the sender
+		if err := c.Mail(from); err != nil {
+			smtpSendChannel <- err
+			return
 		}
+
+		// Set the recipients
+		for _, address := range to {
+			if err := c.Rcpt(address); err != nil {
+				smtpSendChannel <- err
+				return
+			}
+		}
+
+		// Send the data command
+		w, err := c.Data()
+		if err != nil {
+			smtpSendChannel <- err
+			return
+		}
+
+		// write the message
+		_, err = fmt.Fprint(w, msg)
+		if err != nil {
+			smtpSendChannel <- err
+			return
+		}
+
+		err = w.Close()
+		if err != nil {
+			smtpSendChannel <- err
+			return
+		}
+
+		if keepAlive {
+			smtpSendChannel <- c.Reset()
+		} else {
+			c.Quit()
+			smtpSendChannel <- c.Close()
+		}
+	}()
+
+	select {
+	case sendError := <-smtpSendChannel:
+		//c = result.client
+		return sendError
+	case <-time.After(timeout):
+		return errors.New("Mail Error: SMTP Send timed out")
 	}
 
-	// Send the data command
-	w, err := c.Data()
-	if err != nil {
-		return err
-	}
-
-	// write the message
-	_, err = fmt.Fprint(w, msg)
-	if err != nil {
-		return err
-	}
-
-	err = w.Close()
-	if err != nil {
-		return err
-	}
-
-	return c.Quit()
 }
