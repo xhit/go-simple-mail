@@ -678,11 +678,6 @@ func smtpConnect(host string, port string, auth smtp.Auth, encryption encryption
 	return c, nil
 }
 
-type smtpConnectErrorChannel struct {
-	client *smtp.Client
-	err    error
-}
-
 //Connect returns the smtp client
 func (server *SMTPServer) Connect() (*smtp.Client, error) {
 
@@ -692,7 +687,7 @@ func (server *SMTPServer) Connect() (*smtp.Client, error) {
 		auth = smtp.PlainAuth("", server.Username, server.Password, server.Host)
 	}
 
-	var smtpConnectChannel chan smtpConnectErrorChannel
+	var smtpConnectChannel chan error
 	var c *smtp.Client
 	var err error
 
@@ -701,14 +696,11 @@ func (server *SMTPServer) Connect() (*smtp.Client, error) {
 
 	// if there is a timeout, setup the channel and do the connect under a goroutine
 	if timeout != 0 {
-		smtpConnectChannel = make(chan smtpConnectErrorChannel, 2)
+		smtpConnectChannel = make(chan error, 2)
 		go func() {
 			c, err = smtpConnect(server.Host, fmt.Sprintf("%d", server.Port), auth, server.Encryption, new(tls.Config))
 			// send the result
-			smtpConnectChannel <- smtpConnectErrorChannel{
-				client: c,
-				err:    err,
-			}
+			smtpConnectChannel <- err
 		}()
 	}
 
@@ -718,9 +710,10 @@ func (server *SMTPServer) Connect() (*smtp.Client, error) {
 	} else {
 		// get the connect result or timeout result, which ever happens first
 		select {
-		case result := <-smtpConnectChannel:
-			c = result.client
-			err = result.err
+		case err = <-smtpConnectChannel:
+			if err != nil{
+				return nil, errors.New(err.Error() )
+			}
 		case <-time.After(timeout):
 			return nil, errors.New("Mail Error: SMTP Connection timed out")
 		}
