@@ -9,7 +9,7 @@ import (
 	"mime"
 	"net"
 	"net/mail"
-	"net/smtp"
+	// "net/smtp"
 	"net/textproto"
 	"path/filepath"
 	"time"
@@ -29,7 +29,7 @@ type Email struct {
 	Charset     string
 	Encoding    encoding
 	Error       error
-	SMTPServer  *smtp.Client
+	SMTPServer  *Client
 }
 
 //SMTPServer represents a SMTP Server
@@ -591,7 +591,7 @@ func (email *Email) GetMessage() string {
 }
 
 // Send sends the composed email
-func (email *Email) Send(c *smtp.Client, server *SMTPServer) error {
+func (email *Email) Send(c *Client, server *SMTPServer) error {
 
 	if email.Error != nil {
 		return email.Error
@@ -608,7 +608,7 @@ func (email *Email) Send(c *smtp.Client, server *SMTPServer) error {
 }
 
 // dial connects to the smtp server with the request encryption type
-func dial(host string, port string, encryption encryption, config *tls.Config) (*smtp.Client, error) {
+func dial(host string, port string, encryption encryption, config *tls.Config) (*Client, error) {
 	var conn net.Conn
 	var err error
 
@@ -626,7 +626,7 @@ func dial(host string, port string, encryption encryption, config *tls.Config) (
 		return nil, errors.New("Mail Error on dailing with encryption type " + encryption.String() + ": " + err.Error())
 	}
 
-	c, err := smtp.NewClient(conn, host)
+	c, err := NewClient(conn, host)
 
 	if err != nil {
 		return nil, errors.New("Mail Error on smtp dial: " + err.Error())
@@ -637,7 +637,7 @@ func dial(host string, port string, encryption encryption, config *tls.Config) (
 
 // smtpConnect connects to the smtp server and starts TLS and passes auth
 // if necessary
-func smtpConnect(host string, port string, auth smtp.Auth, encryption encryption, config *tls.Config) (*smtp.Client, error) {
+func smtpConnect(host string, port string, auth Auth, encryption encryption, config *tls.Config) (*Client, error) {
 	// connect to the mail server
 	c, err := dial(host, port, encryption, config)
 
@@ -679,16 +679,16 @@ func smtpConnect(host string, port string, auth smtp.Auth, encryption encryption
 }
 
 //Connect returns the smtp client
-func (server *SMTPServer) Connect() (*smtp.Client, error) {
+func (server *SMTPServer) Connect() (*Client, error) {
 
-	var auth smtp.Auth
+	var auth Auth
 
 	if server.Username != "" || server.Password != "" {
-		auth = smtp.PlainAuth("", server.Username, server.Password, server.Host)
+		auth = PlainAuth("", server.Username, server.Password, server.Host)
 	}
 
 	var smtpConnectChannel chan error
-	var c *smtp.Client
+	var c *Client
 	var err error
 
 	// set the timeout value
@@ -723,7 +723,7 @@ func (server *SMTPServer) Connect() (*smtp.Client, error) {
 }
 
 // send does the low level sending of the email
-func send(from string, to []string, msg string, sendTimeout int, c *smtp.Client, keepAlive bool) error {
+func send(from string, to []string, msg string, sendTimeout int, c *Client, keepAlive bool) error {
 	var smtpSendChannel chan error
 
 	// set the timeout value
