@@ -9,7 +9,6 @@ import (
 	"mime"
 	"net"
 	"net/mail"
-	// "net/smtp"
 	"net/textproto"
 	"path/filepath"
 	"time"
@@ -766,20 +765,27 @@ func send(from string, to []string, msg string, sendTimeout int, c *Client, keep
 			return
 		}
 
-		if keepAlive {
-			smtpSendChannel <- c.Reset()
-		} else {
-			c.Quit()
-			smtpSendChannel <- c.Close()
-		}
+		smtpSendChannel <- err
+
 	}()
 
 	select {
 	case sendError := <-smtpSendChannel:
-		//c = result.client
+		checkKeepAlive(keepAlive, c)
 		return sendError
 	case <-time.After(timeout):
+		checkKeepAlive(keepAlive, c)
 		return errors.New("Mail Error: SMTP Send timed out")
 	}
 
+}
+
+//check if keepAlive for close or reset
+func checkKeepAlive(keepAlive bool, c *Client){
+	if keepAlive {
+		c.Reset()
+	} else {
+		c.Quit()
+		c.Close()
+	}
 }
