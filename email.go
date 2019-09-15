@@ -710,8 +710,8 @@ func (server *SMTPServer) Connect() (*Client, error) {
 		// get the connect result or timeout result, which ever happens first
 		select {
 		case err = <-smtpConnectChannel:
-			if err != nil{
-				return nil, errors.New(err.Error() )
+			if err != nil {
+				return nil, errors.New(err.Error())
 			}
 		case <-time.After(timeout):
 			return nil, errors.New("Mail Error: SMTP Connection timed out")
@@ -723,65 +723,70 @@ func (server *SMTPServer) Connect() (*Client, error) {
 
 // send does the low level sending of the email
 func send(from string, to []string, msg string, sendTimeout int, c *Client, keepAlive bool) error {
-	var smtpSendChannel chan error
 
-	// set the timeout value
-	timeout := time.Duration(sendTimeout) * time.Second
+	//Check if client is not nil
+	if c != nil {
+		var smtpSendChannel chan error
 
-	smtpSendChannel = make(chan error, 1)
+		// set the timeout value
+		timeout := time.Duration(sendTimeout) * time.Second
 
-	go func() {
-		// Set the sender
-		if err := c.Mail(from); err != nil {
-			smtpSendChannel <- err
-			return
-		}
+		smtpSendChannel = make(chan error, 1)
 
-		// Set the recipients
-		for _, address := range to {
-			if err := c.Rcpt(address); err != nil {
+		go func() {
+			// Set the sender
+			if err := c.Mail(from); err != nil {
 				smtpSendChannel <- err
 				return
 			}
-		}
 
-		// Send the data command
-		w, err := c.Data()
-		if err != nil {
+			// Set the recipients
+			for _, address := range to {
+				if err := c.Rcpt(address); err != nil {
+					smtpSendChannel <- err
+					return
+				}
+			}
+
+			// Send the data command
+			w, err := c.Data()
+			if err != nil {
+				smtpSendChannel <- err
+				return
+			}
+
+			// write the message
+			_, err = fmt.Fprint(w, msg)
+			if err != nil {
+				smtpSendChannel <- err
+				return
+			}
+
+			err = w.Close()
+			if err != nil {
+				smtpSendChannel <- err
+				return
+			}
+
 			smtpSendChannel <- err
-			return
+
+		}()
+
+		select {
+		case sendError := <-smtpSendChannel:
+			checkKeepAlive(keepAlive, c)
+			return sendError
+		case <-time.After(timeout):
+			checkKeepAlive(keepAlive, c)
+			return errors.New("Mail Error: SMTP Send timed out")
 		}
-
-		// write the message
-		_, err = fmt.Fprint(w, msg)
-		if err != nil {
-			smtpSendChannel <- err
-			return
-		}
-
-		err = w.Close()
-		if err != nil {
-			smtpSendChannel <- err
-			return
-		}
-
-		smtpSendChannel <- err
-
-	}()
-
-	select {
-	case sendError := <-smtpSendChannel:
-		checkKeepAlive(keepAlive, c)
-		return sendError
-	case <-time.After(timeout):
-		checkKeepAlive(keepAlive, c)
-		return errors.New("Mail Error: SMTP Send timed out")
 	}
 
+	return errors.New("Mail Error: No SMTP Client Provided")
 }
 
 //check if keepAlive for close or reset
-func checkKeepAlive(keepAlive bool, c *Client){
+func checkKeepAlive(keepAlive bool, c *Client) {
 	if keepAlive {
 		c.Reset()
 	} else {
