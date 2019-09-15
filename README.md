@@ -1,9 +1,11 @@
 The best way to send emails in Go with SMTP Keep Alive and Timeout for Connect and Send.
 
+Inspired in joegrasse package github.com/joegrasse/mail Thanks
+
 **Download**
 
 ```bash
-go get -u github.com/joegrasse/mail
+go get -u github.com/xhit/go-simple-mail
 ```
 
 **Usage**
@@ -12,7 +14,7 @@ go get -u github.com/joegrasse/mail
 package main
 
 import (
-	"github.com/joegrasse/mail"
+	"github.com/xhit/go-simple-mail"
 	"log"
 )
 
