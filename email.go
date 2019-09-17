@@ -733,7 +733,7 @@ func send(from string, to []string, msg string, sendTimeout int, c *Client, keep
 
 		smtpSendChannel = make(chan error, 1)
 
-		go func() {
+		go func(c *Client) {
 			// Set the sender
 			if err := c.Mail(from); err != nil {
 				smtpSendChannel <- err
@@ -770,7 +770,7 @@ func send(from string, to []string, msg string, sendTimeout int, c *Client, keep
 
 			smtpSendChannel <- err
 
-		}()
+		}(c)
 
 		select {
 		case sendError := <-smtpSendChannel:
