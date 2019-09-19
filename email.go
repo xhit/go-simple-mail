@@ -3,6 +3,7 @@ package mail
 import (
 	"bytes"
 	"crypto/tls"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -468,6 +469,23 @@ func (email *Email) AddAttachment(file string, name ...string) *Email {
 	return email
 }
 
+// AddAttachmentBase64 allows you to add an attachment in base64 to the email message.
+// You need provide a name for the file.
+func (email *Email) AddAttachmentBase64(b64File string, name string) *Email {
+	if email.Error != nil {
+		return email
+	}
+
+	if len(name) < 1 || len(b64File) < 1 {
+		email.Error = errors.New("Mail Error: Attach Base64 need have a base64 string and name")
+		return email
+	}
+
+	email.Error = email.attachB64(b64File, name)
+
+	return email
+}
+
 // AddInline allows you to add an inline attachment to the email message.
 // You can optionally provide a different name for the file.
 func (email *Email) AddInline(file string, name ...string) *Email {
@@ -520,6 +538,50 @@ func (email *Email) attach(f string, inline bool, name ...string) error {
 			data:     data,
 		})
 	}
+
+	return nil
+}
+
+// attachB64 does the low level attaching of the files
+func (email *Email) attachB64(b64File string, name string) error {
+	// Get the file data
+	// data, err := ioutil.ReadFile(f)
+	// if err != nil {
+	// 	return errors.New("Mail Error: Failed to add file with following error: " + err.Error())
+	// }
+
+	dec, err := base64.StdEncoding.DecodeString(b64File)
+	if err != nil {
+		return errors.New("Mail Error: Failed to decode base64 attachment with following error: " + err.Error())
+	}
+
+	// get the file mime type
+	mimeType := mime.TypeByExtension(name)
+	if mimeType == "" {
+		mimeType = "application/octet-stream"
+	}
+
+	// get the filename
+	// _, filename := filepath.Split(f)
+
+	// if an alternative filename was provided, use that instead
+	// if len(name) == 1 {
+	// 	filename = name[0]
+	// }
+
+	// if inline {
+	// 	email.inlines = append(email.inlines, &file{
+	// 		filename: filename,
+	// 		mimeType: mimeType,
+	// 		data:     data,
+	// 	})
+	// } else {
+	email.attachments = append(email.attachments, &file{
+		filename: name,
+		mimeType: mimeType,
+		data:     dec,
+	})
+	// }
 
 	return nil
 }
