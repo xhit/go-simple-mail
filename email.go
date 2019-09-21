@@ -45,6 +45,13 @@ type SMTPServer struct {
 	KeepAlive      bool
 }
 
+//SMTPClient represents a SMTP Client for send email
+type SMTPClient struct {
+	Client      *Client
+	KeepAlive   bool
+	SendTimeout int
+}
+
 // part represents the different content parts of an email body.
 type part struct {
 	contentType string
@@ -92,8 +99,8 @@ func (encoding encoding) String() string {
 	return encodingTypes[encoding]
 }
 
-// New creates a new email. It uses UTF-8 by default.
-func New() *Email {
+// NewMSG creates a new email. It uses UTF-8 by default.
+func NewMSG() *Email {
 	email := &Email{
 		headers:  make(textproto.MIMEHeader),
 		Charset:  "UTF-8",
@@ -105,8 +112,8 @@ func New() *Email {
 	return email
 }
 
-//NewSMTPServer returns the client for send email
-func NewSMTPServer() *SMTPServer {
+//NewSMTPClient returns the client for send email
+func NewSMTPClient() *SMTPServer {
 	server := &SMTPServer{}
 	return server
 }
@@ -542,14 +549,10 @@ func (email *Email) attach(f string, inline bool, name ...string) error {
 	return nil
 }
 
-// attachB64 does the low level attaching of the files
+// attachB64 does the low level attaching of the files but decoding base64 instad have a filepath
 func (email *Email) attachB64(b64File string, name string) error {
-	// Get the file data
-	// data, err := ioutil.ReadFile(f)
-	// if err != nil {
-	// 	return errors.New("Mail Error: Failed to add file with following error: " + err.Error())
-	// }
 
+	// decode the string
 	dec, err := base64.StdEncoding.DecodeString(b64File)
 	if err != nil {
 		return errors.New("Mail Error: Failed to decode base64 attachment with following error: " + err.Error())
@@ -561,27 +564,11 @@ func (email *Email) attachB64(b64File string, name string) error {
 		mimeType = "application/octet-stream"
 	}
 
-	// get the filename
-	// _, filename := filepath.Split(f)
-
-	// if an alternative filename was provided, use that instead
-	// if len(name) == 1 {
-	// 	filename = name[0]
-	// }
-
-	// if inline {
-	// 	email.inlines = append(email.inlines, &file{
-	// 		filename: filename,
-	// 		mimeType: mimeType,
-	// 		data:     data,
-	// 	})
-	// } else {
 	email.attachments = append(email.attachments, &file{
 		filename: name,
 		mimeType: mimeType,
 		data:     dec,
 	})
-	// }
 
 	return nil
 }
@@ -652,7 +639,7 @@ func (email *Email) GetMessage() string {
 }
 
 // Send sends the composed email
-func (email *Email) Send(c *Client, server *SMTPServer) error {
+func (email *Email) Send(smtpClient *SMTPClient) error {
 
 	if email.Error != nil {
 		return email.Error
@@ -664,7 +651,7 @@ func (email *Email) Send(c *Client, server *SMTPServer) error {
 
 	msg := email.GetMessage()
 
-	return send(email.from, email.recipients, msg, server.SendTimeout, c, server.KeepAlive)
+	return send(email.from, email.recipients, msg, smtpClient)
 
 }
 
@@ -740,7 +727,7 @@ func smtpConnect(host string, port string, auth Auth, encryption encryption, con
 }
 
 //Connect returns the smtp client
-func (server *SMTPServer) Connect() (*Client, error) {
+func (server *SMTPServer) Connect() (*SMTPClient, error) {
 
 	var auth Auth
 
@@ -780,67 +767,75 @@ func (server *SMTPServer) Connect() (*Client, error) {
 		}
 	}
 
-	return c, nil
+	return &SMTPClient{
+		Client:      c,
+		KeepAlive:   server.KeepAlive,
+		SendTimeout: server.SendTimeout,
+	}, nil
 }
 
 // send does the low level sending of the email
-func send(from string, to []string, msg string, sendTimeout int, c *Client, keepAlive bool) error {
+func send(from string, to []string, msg string, smtpClient *SMTPClient) error {
 
-	//Check if client is not nil
-	if c != nil {
-		var smtpSendChannel chan error
+	//Check if client struct is not nil
+	if smtpClient != nil {
 
-		// set the timeout value
-		timeout := time.Duration(sendTimeout) * time.Second
+		//Check if client is not nil
+		if smtpClient.Client != nil {
+			var smtpSendChannel chan error
 
-		smtpSendChannel = make(chan error, 1)
+			// set the timeout value
+			timeout := time.Duration(smtpClient.SendTimeout) * time.Second
 
-		go func(c *Client) {
-			// Set the sender
-			if err := c.Mail(from); err != nil {
-				smtpSendChannel <- err
-				return
-			}
+			smtpSendChannel = make(chan error, 1)
 
-			// Set the recipients
-			for _, address := range to {
-				if err := c.Rcpt(address); err != nil {
+			go func(c *Client) {
+				// Set the sender
+				if err := c.Mail(from); err != nil {
 					smtpSendChannel <- err
 					return
 				}
-			}
 
-			// Send the data command
-			w, err := c.Data()
-			if err != nil {
+				// Set the recipients
+				for _, address := range to {
+					if err := c.Rcpt(address); err != nil {
+						smtpSendChannel <- err
+						return
+					}
+				}
+
+				// Send the data command
+				w, err := c.Data()
+				if err != nil {
+					smtpSendChannel <- err
+					return
+				}
+
+				// write the message
+				_, err = fmt.Fprint(w, msg)
+				if err != nil {
+					smtpSendChannel <- err
+					return
+				}
+
+				err = w.Close()
+				if err != nil {
+					smtpSendChannel <- err
+					return
+				}
+
 				smtpSendChannel <- err
-				return
+
+			}(smtpClient.Client)
+
+			select {
+			case sendError := <-smtpSendChannel:
+				checkKeepAlive(smtpClient)
+				return sendError
+			case <-time.After(timeout):
+				checkKeepAlive(smtpClient)
+				return errors.New("Mail Error: SMTP Send timed out")
 			}
-
-			// write the message
-			_, err = fmt.Fprint(w, msg)
-			if err != nil {
-				smtpSendChannel <- err
-				return
-			}
-
-			err = w.Close()
-			if err != nil {
-				smtpSendChannel <- err
-				return
-			}
-
-			smtpSendChannel <- err
-
-		}(c)
-
-		select {
-		case sendError := <-smtpSendChannel:
-			checkKeepAlive(keepAlive, c)
-			return sendError
-		case <-time.After(timeout):
-			checkKeepAlive(keepAlive, c)
-			return errors.New("Mail Error: SMTP Send timed out")
 		}
 	}
 
@@ -848,11 +843,11 @@ func send(from string, to []string, msg string, sendTimeout int, c *Client, keep
 }
 
 //check if keepAlive for close or reset
-func checkKeepAlive(keepAlive bool, c *Client) {
-	if keepAlive {
-		c.Reset()
+func checkKeepAlive(smtpClient *SMTPClient) {
+	if smtpClient.KeepAlive {
+		smtpClient.Client.Reset()
 	} else {
-		c.Quit()
-		c.Close()
+		smtpClient.Client.Quit()
+		smtpClient.Client.Close()
 	}
 }

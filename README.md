@@ -2,6 +2,9 @@ The best way to send emails in Go with SMTP Keep Alive and Timeout for Connect a
 
 Inspired in joegrasse package github.com/joegrasse/mail Thanks
 
+**IMPORTANT**
+This example is for version 2.1.0 and above, for v2.0.0 example go here https://gist.github.com/xhit/54516917473420a8db1b6fff68a21c99
+
 **Download**
 
 ```bash
@@ -33,7 +36,7 @@ func main() {
 	</body>
 </html>`
 
-	server := mail.NewSMTPServer()
+	server := mail.NewSMTPClient()
 	
 	//SMTP Server
 	server.Host = "smtp.example.com"
@@ -52,14 +55,14 @@ func main() {
 	server.SendTimeout = 10
 	
 	//SMTP client
-	smtpServer,err :=server.Connect()
+	smtpClient,err :=server.Connect()
 	
 	if err != nil{
 		log.Fatal(err)
 	}
 
 	//New email simple html with inline and CC
-	email := mail.New()
+	email := mail.NewMSG()
 
 	email.SetFrom("From Example <nube@example.com>").
 		AddTo("xhit@example.com").
@@ -70,7 +73,8 @@ func main() {
 
 	email.AddInline("/path/to/image.png", "Gopher.png")
 
-	err = email.Send(smtpServer,server)
+	//Call Send and pass the client
+	err = email.Send(smtpClient)
 
 	if err != nil {
 		log.Println(err)
@@ -80,10 +84,10 @@ func main() {
 
 
 	//Other email with same connection and attachments
-	email = mail.New()
+	email = mail.NewMSG()
 	
 	email.SetFrom("HELLO <nube@example.com>").
-	AddTo("xhit@example.com").
+		AddTo("xhit@example.com").
 		SetSubject("dfgdfgdf")
 
 	email.SetBody("text/plain", "Hello Gophers!")
@@ -92,7 +96,11 @@ func main() {
 	email.AddAttachment("path/to/file","filename test")
 	email.AddAttachment("path/to/file2")
 
-	err = email.Send(smtpServer,server)
+	// also you can attach a base64 instead a file path
+	email.AddAttachmentBase64("SGVsbG8gZ29waGVycyE=", "hello.txt")
+
+	//Call Send and pass the client
+	err = email.Send(smtpClient)
 
 	if err != nil {
 		log.Println(err)
