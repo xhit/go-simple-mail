@@ -1,5 +1,11 @@
 The best way to send emails in Go with SMTP Keep Alive and Timeout for Connect and Send.
 
+[![Go Doc](https://godoc.org/github.com/xhit/go-simple-mail?status.svg)](https://godoc.org/github.com/xhit/go-simple-mail)
+[![Go Report](https://goreportcard.com/badge/github.com/xhit/go-simple-mail)](https://goreportcard.com/report/github.com/xhit/go-simple-mail)
+
+**Coverage service link**
+https://gocover.io/github.com/xhit/go-simple-mail
+
 Inspired in joegrasse package github.com/joegrasse/mail Thanks
 
 **IMPORTANT**
@@ -109,12 +115,3 @@ func main() {
 	}
 }
 ```
-
-**godoc**
-https://godoc.org/github.com/xhit/go-simple-mail
-
-**goreportcard**
-https://goreportcard.com/report/github.com/xhit/go-simple-mail
-
-**coverage service link**
-https://gocover.io/github.com/xhit/go-simple-mail
