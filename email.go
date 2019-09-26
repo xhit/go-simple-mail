@@ -378,7 +378,7 @@ func (email *Email) SetBody(contentType, body string) *Email {
 	}
 
 	email.parts = []part{
-		part{
+		{
 			contentType: contentType,
 			body:        bytes.NewBufferString(body),
 		},
@@ -427,7 +427,7 @@ func (email *Email) AddHeader(header string, values ...string) *Email {
 	return email
 }
 
-// AddHeaders is used to add mulitple headers at once
+// AddHeaders is used to add multiple headers at once
 func (email *Email) AddHeaders(headers textproto.MIMEHeader) *Email {
 	if email.Error != nil {
 		return email
