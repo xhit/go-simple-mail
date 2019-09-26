@@ -109,3 +109,12 @@ func main() {
 	}
 }
 ```
+
+**godoc**
+https://godoc.org/github.com/xhit/go-simple-mail
+
+**goreportcard**
+https://goreportcard.com/report/github.com/xhit/go-simple-mail
+
+**coverage service link**
+https://gocover.io/github.com/xhit/go-simple-mail
