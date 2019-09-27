@@ -55,10 +55,10 @@ func main() {
 	server.KeepAlive = true
 	
 	//Timeout for connect to SMTP Server
-	server.ConnectTimeout = 10
+	server.ConnectTimeout = 10 * time.Second
 	
 	//Timeout for send the data and wait respond
-	server.SendTimeout = 10
+	server.SendTimeout = 10 * time.Second
 	
 	//SMTP client
 	smtpClient,err :=server.Connect()

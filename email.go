@@ -38,8 +38,8 @@ type SMTPServer struct {
 	Encryption     encryption
 	Username       string
 	Password       string
-	ConnectTimeout int
-	SendTimeout    int
+	ConnectTimeout time.Duration
+	SendTimeout    time.Duration
 	Host           string
 	Port           int
 	KeepAlive      bool
@@ -49,7 +49,7 @@ type SMTPServer struct {
 type SMTPClient struct {
 	Client      *Client
 	KeepAlive   bool
-	SendTimeout int
+	SendTimeout time.Duration
 }
 
 // part represents the different content parts of an email body.
@@ -114,7 +114,11 @@ func NewMSG() *Email {
 
 //NewSMTPClient returns the client for send email
 func NewSMTPClient() *SMTPServer {
-	server := &SMTPServer{}
+	server := &SMTPServer{
+		Encryption:     EncryptionNone,
+		ConnectTimeout: 10 * time.Second,
+		SendTimeout:    10 * time.Second,
+	}
 	return server
 }
 
@@ -739,11 +743,8 @@ func (server *SMTPServer) Connect() (*SMTPClient, error) {
 	var c *Client
 	var err error
 
-	// set the timeout value
-	timeout := time.Duration(server.ConnectTimeout) * time.Second
-
-	// if there is a timeout, setup the channel and do the connect under a goroutine
-	if timeout != 0 {
+	// if there is a ConnectTimeout, setup the channel and do the connect under a goroutine
+	if server.ConnectTimeout != 0 {
 		smtpConnectChannel = make(chan error, 2)
 		go func() {
 			c, err = smtpConnect(server.Host, fmt.Sprintf("%d", server.Port), auth, server.Encryption, new(tls.Config))
@@ -752,8 +753,8 @@ func (server *SMTPServer) Connect() (*SMTPClient, error) {
 		}()
 	}
 
-	if timeout == 0 {
-		// no timeout, just fire the connect
+	if server.ConnectTimeout == 0 {
+		// no ConnectTimeout, just fire the connect
 		c, err = smtpConnect(server.Host, fmt.Sprintf("%d", server.Port), auth, server.Encryption, new(tls.Config))
 	} else {
 		// get the connect result or timeout result, which ever happens first
@@ -762,7 +763,7 @@ func (server *SMTPServer) Connect() (*SMTPClient, error) {
 			if err != nil {
 				return nil, errors.New(err.Error())
 			}
-		case <-time.After(timeout):
+		case <-time.After(server.ConnectTimeout):
 			return nil, errors.New("Mail Error: SMTP Connection timed out")
 		}
 	}
@@ -783,9 +784,6 @@ func send(from string, to []string, msg string, smtpClient *SMTPClient) error {
 		//Check if client is not nil
 		if smtpClient.Client != nil {
 			var smtpSendChannel chan error
-
-			// set the timeout value
-			timeout := time.Duration(smtpClient.SendTimeout) * time.Second
 
 			smtpSendChannel = make(chan error, 1)
 
@@ -832,7 +830,7 @@ func send(from string, to []string, msg string, smtpClient *SMTPClient) error {
 			case sendError := <-smtpSendChannel:
 				checkKeepAlive(smtpClient)
 				return sendError
-			case <-time.After(timeout):
+			case <-time.After(smtpClient.SendTimeout):
 				checkKeepAlive(smtpClient)
 				return errors.New("Mail Error: SMTP Send timed out")
 			}

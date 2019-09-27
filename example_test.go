@@ -2,6 +2,7 @@ package mail
 
 import (
 	"testing"
+	"time"
 )
 
 //Some variables to connect and the body
@@ -23,8 +24,8 @@ var (
 	username       = "test@example.com"
 	password       = "examplepass"
 	encryptionType = EncryptionTLS
-	connectTimeout = 10
-	sendTimeout    = 10
+	connectTimeout = 10 * time.Second
+	sendTimeout    = 10 * time.Second
 )
 
 //TestSendMailWithAttachment send a simple html email
