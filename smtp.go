@@ -167,32 +167,6 @@ func (c *Client) StartTLS(config *tls.Config) error {
 	return c.ehlo()
 }
 
-// TLSConnectionState returns the client's TLS connection state.
-// The return values are their zero values if StartTLS did
-// not succeed.
-func (c *Client) TLSConnectionState() (state tls.ConnectionState, ok bool) {
-	tc, ok := c.conn.(*tls.Conn)
-	if !ok {
-		return
-	}
-	return tc.ConnectionState(), true
-}
-
-// Verify checks the validity of an email address on the server.
-// If Verify returns nil, the address is valid. A non-nil return
-// does not necessarily indicate an invalid address. Many servers
-// will not verify addresses for security reasons.
-func (c *Client) Verify(addr string) error {
-	if err := validateLine(addr); err != nil {
-		return err
-	}
-	if err := c.hello(); err != nil {
-		return err
-	}
-	_, _, err := c.cmd(250, "VRFY %s", addr)
-	return err
-}
-
 // Auth authenticates a client using the provided authentication mechanism.
 // A failed authentication closes the connection.
 // Only servers that advertise the AUTH extension support this function.
@@ -292,85 +266,6 @@ func (c *Client) Data() (io.WriteCloser, error) {
 		return nil, err
 	}
 	return &dataCloser{c, c.Text.DotWriter()}, nil
-}
-
-var testHookStartTLS func(*tls.Config) // nil, except for tests
-
-// SendMail connects to the server at addr, switches to TLS if
-// possible, authenticates with the optional mechanism a if possible,
-// and then sends an email from address from, to addresses to, with
-// message msg.
-// The addr must include a port, as in "mail.example.com:smtp".
-//
-// The addresses in the to parameter are the SMTP RCPT addresses.
-//
-// The msg parameter should be an RFC 822-style email with headers
-// first, a blank line, and then the message body. The lines of msg
-// should be CRLF terminated. The msg headers should usually include
-// fields such as "From", "To", "Subject", and "Cc".  Sending "Bcc"
-// messages is accomplished by including an email address in the to
-// parameter but not including it in the msg headers.
-//
-// The SendMail function and the net/smtp package are low-level
-// mechanisms and provide no support for DKIM signing, MIME
-// attachments (see the mime/multipart package), or other mail
-// functionality. Higher-level packages exist outside of the standard
-// library.
-func SendMail(addr string, a Auth, from string, to []string, msg []byte) error {
-	if err := validateLine(from); err != nil {
-		return err
-	}
-	for _, recp := range to {
-		if err := validateLine(recp); err != nil {
-			return err
-		}
-	}
-	c, err := Dial(addr)
-	if err != nil {
-		return err
-	}
-	defer c.Close()
-	if err = c.hello(); err != nil {
-		return err
-	}
-	if ok, _ := c.Extension("STARTTLS"); ok {
-		config := &tls.Config{ServerName: c.serverName}
-		if testHookStartTLS != nil {
-			testHookStartTLS(config)
-		}
-		if err = c.StartTLS(config); err != nil {
-			return err
-		}
-	}
-	if a != nil && c.ext != nil {
-		if _, ok := c.ext["AUTH"]; !ok {
-			return errors.New("smtp: server doesn't support AUTH")
-		}
-		if err = c.Auth(a); err != nil {
-			return err
-		}
-	}
-	if err = c.Mail(from); err != nil {
-		return err
-	}
-	for _, addr := range to {
-		if err = c.Rcpt(addr); err != nil {
-			return err
-		}
-	}
-	w, err := c.Data()
-	if err != nil {
-		return err
-	}
-	_, err = w.Write(msg)
-	if err != nil {
-		return err
-	}
-	err = w.Close()
-	if err != nil {
-		return err
-	}
-	return c.Quit()
 }
 
 // Extension reports whether an extension is support by the server.

@@ -96,11 +96,21 @@ func TestSendMailWithAttachment(t *testing.T) {
 		AddTo("to.email@example.com").
 		SetSubject("New Go Email")
 
+	//Some additional options to send
+	email.SetSender("sender@sender.com")
+	email.SetReplyTo("replyto@reply.com")
+	email.SetReturnPath("returnpath@info.com")
+	email.AddCc("cc@example.com")
+	email.AddBcc("bcccc@example.com")
+
 	email.SetBody("text/html", htmlBody)
 	email.AddInline("path/to/inline/Gopher.png")
 
 	//Attach the file
 	email.AddAttachment("path/to/file")
+
+	//Attach the file with a base64
+	email.AddAttachmentBase64("base64string", "filename")
 
 	//Pass the client to the email message to send it
 	err = email.Send(smtpClient)

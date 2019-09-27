@@ -5,10 +5,7 @@
 package mail
 
 import (
-	"crypto/hmac"
-	"crypto/md5"
 	"errors"
-	"fmt"
 )
 
 // Auth is implemented by an SMTP authentication mechanism.
@@ -55,19 +52,13 @@ func PlainAuth(identity, username, password, host string) Auth {
 	return &plainAuth{identity, username, password, host}
 }
 
-func isLocalhost(name string) bool {
-	return name == "localhost" || name == "127.0.0.1" || name == "::1"
-}
 
 func (a *plainAuth) Start(server *ServerInfo) (string, []byte, error) {
-	// Must have TLS, or else localhost server.
+	// Must have TLS, or else localhost server. Unencrypted connection is permitted here too but is not recommended
 	// Note: If TLS is not true, then we can't trust ANYTHING in ServerInfo.
 	// In particular, it doesn't matter if the server advertises PLAIN auth.
 	// That might just be the attacker saying
 	// "it's ok, you can trust me with your password."
-	// if !server.TLS && !isLocalhost(server.Name) {
-	// 	return "", nil, errors.New("unencrypted connection")
-	// }
 	if server.Name != a.host {
 		return "", nil, errors.New("wrong host name")
 	}
@@ -79,32 +70,6 @@ func (a *plainAuth) Next(fromServer []byte, more bool) ([]byte, error) {
 	if more {
 		// We've already sent everything.
 		return nil, errors.New("unexpected server challenge")
-	}
-	return nil, nil
-}
-
-type cramMD5Auth struct {
-	username, secret string
-}
-
-// CRAMMD5Auth returns an Auth that implements the CRAM-MD5 authentication
-// mechanism as defined in RFC 2195.
-// The returned Auth uses the given username and secret to authenticate
-// to the server using the challenge-response mechanism.
-func CRAMMD5Auth(username, secret string) Auth {
-	return &cramMD5Auth{username, secret}
-}
-
-func (a *cramMD5Auth) Start(server *ServerInfo) (string, []byte, error) {
-	return "CRAM-MD5", nil, nil
-}
-
-func (a *cramMD5Auth) Next(fromServer []byte, more bool) ([]byte, error) {
-	if more {
-		d := hmac.New(md5.New, []byte(a.secret))
-		d.Write(fromServer)
-		s := make([]byte, 0, d.Size())
-		return []byte(fmt.Sprintf("%s %x", a.username, d.Sum(s))), nil
 	}
 	return nil, nil
 }
