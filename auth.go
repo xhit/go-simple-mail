@@ -52,7 +52,6 @@ func PlainAuth(identity, username, password, host string) Auth {
 	return &plainAuth{identity, username, password, host}
 }
 
-
 func (a *plainAuth) Start(server *ServerInfo) (string, []byte, error) {
 	// Must have TLS, or else localhost server. Unencrypted connection is permitted here too but is not recommended
 	// Note: If TLS is not true, then we can't trust ANYTHING in ServerInfo.
