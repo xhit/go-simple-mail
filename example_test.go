@@ -19,11 +19,11 @@ var (
 	</body>
 </html>`
 
-	host           = "example.com"
+	host           = "nsaq500awin"
 	port           = 25
 	username       = "test@example.com"
-	password       = "examplepass"
-	encryptionType = EncryptionTLS
+	password       = "santiago"
+	encryptionType = EncryptionNone
 	connectTimeout = 10 * time.Second
 	sendTimeout    = 10 * time.Second
 )
@@ -46,6 +46,11 @@ func TestSendMail(t *testing.T) {
 	//Connect to client
 	smtpClient, err := client.Connect()
 
+	//smtpClient is a struct that contain *Client, so you can apply to this the commands directly commands
+
+	//NOOP
+	smtpClient.Client.Noop()
+
 	if err != nil {
 		t.Error("Expected nil, got", err, "connecting to client")
 	}
@@ -53,68 +58,40 @@ func TestSendMail(t *testing.T) {
 	//Create the email message
 	email := NewMSG()
 
-	email.SetFrom("From Example <from.email@example.com>").
-		AddTo("to.email@example.com").
+	email.SetFrom("From Example <test@example.com>").
+		AddTo("admin@example.com").
 		SetSubject("New Go Email")
 
 	email.SetBody("text/html", htmlBody)
-
-	//Pass the client to the email message to send it
-	err = email.Send(smtpClient)
-
-	if err != nil {
-		t.Error("Expected nil, got", err, "sending email")
-	}
-
-}
-
-//TestSendMailWithAttachment send email with attachment
-func TestSendMailWithAttachment(t *testing.T) {
-
-	client := NewSMTPClient()
-
-	//SMTP Client
-	client.Host = host
-	client.Port = port
-	client.Username = username
-	client.Password = password
-	client.Encryption = encryptionType
-	client.ConnectTimeout = connectTimeout
-	client.SendTimeout = sendTimeout
-	client.KeepAlive = false
-
-	//Connect to client
-	smtpClient, err := client.Connect()
-
-	if err != nil {
-		t.Error("Expected nil, got", err, "connecting to client")
-	}
-
-	//Create the email message
-	email := NewMSG()
-
-	email.SetFrom("From Example <from.email@example.com>").
-		AddTo("to.email@example.com").
-		SetSubject("New Go Email")
+	email.AddAlternative("text/plain", "Hello Gophers!")
 
 	//Some additional options to send
-	email.SetSender("sender@sender.com")
+	email.SetSender("xhit@test.com")
 	email.SetReplyTo("replyto@reply.com")
-	email.SetReturnPath("returnpath@info.com")
-	email.AddCc("cc@example.com")
-	email.AddBcc("bcccc@example.com")
+	email.SetReturnPath("test@example.com")
+	email.AddCc("cc@example1.com")
+	email.AddBcc("bcccc@example2.com")
 
-	email.SetBody("text/html", htmlBody)
-	email.AddInline("path/to/inline/Gopher.png")
+	//Add inline too!
+	email.AddInline("C:/Users/sdelacruz/Pictures/Gopher.png")
 
-	//Attach the file
-	email.AddAttachment("path/to/file")
+	//Attach a file with path
+	email.AddAttachment("C:/Users/sdelacruz/Pictures/Gopher.png")
 
 	//Attach the file with a base64
 	email.AddAttachmentBase64("base64string", "filename")
 
+	//Set a different date in header email
+	email.SetDate("2015-04-28 10:32:00 CDT")
+
+	//Send with low priority
+	email.SetPriority(PriorityLow)
+
 	//Pass the client to the email message to send it
 	err = email.Send(smtpClient)
+
+	//Get first error
+	email.GetError()
 
 	if err != nil {
 		t.Error("Expected nil, got", err, "sending email")
@@ -144,11 +121,13 @@ func TestSendMultipleEmails(t *testing.T) {
 	//Connect to client
 	smtpClient, err := client.Connect()
 
+	smtpClient.Client.helo()
+
 	if err != nil {
 		t.Error("Expected nil, got", err, "connecting to client")
 	}
 
-	toList := [3]string{"to1@example.com", "to3@example.com", "to4@example.com"}
+	toList := [3]string{"to1@example1.com", "to3@example2.com", "to4@example3.com"}
 
 	for _, to := range toList {
 		err = sendEmail(htmlBody, to, smtpClient)
@@ -167,10 +146,29 @@ func sendEmail(htmlBody string, to string, smtpClient *SMTPClient) error {
 		AddTo(to).
 		SetSubject("New Go Email")
 
+	//Get from each mail
+	email.getFrom()
 	email.SetBody("text/html", htmlBody)
+
+	//Send with high priority
+	email.SetPriority(PriorityHigh)
 
 	//Pass the client to the email message to send it
 	err := email.Send(smtpClient)
 
 	return err
+}
+
+func TestPriority(t *testing.T) {
+	str := PriorityLow.String()
+
+	if len(str) < 1 {
+		t.Error("Expected Low, returned empty string")
+	}
+
+	str = PriorityHigh.String()
+
+	if len(str) < 1 {
+		t.Error("Expected High, returned empty string")
+	}
 }

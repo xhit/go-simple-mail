@@ -1,6 +1,6 @@
 // Copyright 2010 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
+// license that can be found in https://raw.githubusercontent.com/golang/go/master/LICENSE
 
 // Package mail implements the Simple Mail Transfer Protocol as defined in RFC 5321.
 // It also implements the following extensions:
@@ -44,17 +44,6 @@ type Client struct {
 	localName  string // the name to use in HELO/EHLO
 	didHello   bool   // whether we've said HELO/EHLO
 	helloError error  // the error from the hello
-}
-
-// Dial returns a new Client connected to an SMTP server at addr.
-// The addr must include a port, as in "mail.example.com:smtp".
-func Dial(addr string) (*Client, error) {
-	conn, err := net.Dial("tcp", addr)
-	if err != nil {
-		return nil, err
-	}
-	host, _, _ := net.SplitHostPort(addr)
-	return NewClient(conn, host)
 }
 
 // NewClient returns a new Client using an existing connection and host as a
@@ -241,7 +230,7 @@ func (c *Client) Rcpt(to string) error {
 	if err := validateLine(to); err != nil {
 		return err
 	}
-	_, _, err := c.cmd(25, "RCPT TO:<%s>", to)
+	_, _, err := c.cmd(250, "RCPT TO:<%s>", to)
 	return err
 }
 

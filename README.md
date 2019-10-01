@@ -3,13 +3,8 @@ The best way to send emails in Go with SMTP Keep Alive and Timeout for Connect a
 [![Go Doc](https://godoc.org/github.com/xhit/go-simple-mail?status.svg)](https://godoc.org/github.com/xhit/go-simple-mail)
 [![Go Report](https://goreportcard.com/badge/github.com/xhit/go-simple-mail)](https://goreportcard.com/report/github.com/xhit/go-simple-mail)
 
-**Coverage service link**
-https://gocover.io/github.com/xhit/go-simple-mail
-
-Inspired in joegrasse package github.com/joegrasse/mail Thanks
-
 **IMPORTANT**
-This example is for version 2.1.0 and above, for v2.0.0 example go here https://gist.github.com/xhit/54516917473420a8db1b6fff68a21c99
+This example is for version 2.1.3 and above, for v2.0.0 example go here https://gist.github.com/xhit/54516917473420a8db1b6fff68a21c99
 
 **Download**
 
