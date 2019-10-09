@@ -6,7 +6,10 @@ The best way to send emails in Go with SMTP Keep Alive and Timeout for Connect a
 [![Go Report](https://goreportcard.com/badge/github.com/xhit/go-simple-mail)](https://goreportcard.com/report/github.com/xhit/go-simple-mail)
 
 **IMPORTANT**
-This example is for version 2.1.3 and above, for v2.0.0 example go here https://gist.github.com/xhit/54516917473420a8db1b6fff68a21c99
+This example is for version 2.2.0 and above. 
+
+Version 2.1.3 and below use "text/html" and "text/plain" in SetBody and AddAlternative
+Also 2.0.0 and below go to this doc https://gist.github.com/xhit/54516917473420a8db1b6fff68a21c99
 
 # Introduction
 
@@ -19,7 +22,13 @@ is easy to implement other methods for sending emails using a local Postfix, an 
 ## Features
 
 Go Simple Mail supports:
-- Attachments
+- Multiple Attachments with path
+- Multiple Attachments in base64
+- Multiple Recipients
+- Priority
+- Reply to
+- Set other sender
+- Set other from
 - Embedded images
 - HTML and text templates
 - Automatic encoding of special characters
@@ -28,6 +37,15 @@ Go Simple Mail supports:
 - Sending multiple emails with the same SMTP connection (Keep Alive or Persistent Connection)
 - Timeout for connect to a SMTP Server
 - Timeout for send an email
+- Return Path
+- Alternaive Email Body
+- CC and BCC
+- Add Custom Headers in Message
+- Send NOOP, RESET, QUIT and CLOSE to SMTP client
+
+## Documentation
+
+https://godoc.org/github.com/xhit/go-simple-mail
 
 ## Download
 
@@ -93,7 +111,7 @@ func main() {
 		AddCc("otherto@example.com").
 		SetSubject("New Go Email")
 
-	email.SetBody("text/html", htmlBody)
+	email.SetBody(mail.TextHTML, htmlBody)
 
 	email.AddInline("/path/to/image.png", "Gopher.png")
 
@@ -124,7 +142,7 @@ func main() {
 			AddTo(to).
 			SetSubject("New Go Email")
 
-		email.SetBody("text/html", htmlBody)
+		email.SetBody(mail.TextHTML, htmlBody)
 
 		email.AddInline("/path/to/image.png", "Gopher.png")
 

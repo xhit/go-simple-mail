@@ -1,4 +1,6 @@
-// Package mail implements "Q" encoding as specified by RFC 2047.
+// headers.go implements "Q" encoding as specified by RFC 2047.
+//Modified from https://github.com/joegrasse/mime to use with Go Simple Mail
+
 package mail
 
 import (

@@ -65,8 +65,8 @@ func TestSendMail(t *testing.T) {
 		AddTo("admin@example.com").
 		SetSubject("New Go Email")
 
-	email.SetBody("text/html", htmlBody)
-	email.AddAlternative("text/plain", "Hello Gophers!")
+	email.SetBody(TextHTML, htmlBody)
+	email.AddAlternative(TextPlain, "Hello Gophers!")
 
 	//Some additional options to send
 	email.SetSender("xhit@test.com")
@@ -149,7 +149,7 @@ func sendEmail(htmlBody string, to string, smtpClient *SMTPClient) error {
 
 	//Get from each mail
 	email.getFrom()
-	email.SetBody("text/html", htmlBody)
+	email.SetBody(TextHTML, htmlBody)
 
 	//Send with high priority
 	email.SetPriority(PriorityHigh)
@@ -158,20 +158,6 @@ func sendEmail(htmlBody string, to string, smtpClient *SMTPClient) error {
 	err := email.Send(smtpClient)
 
 	return err
-}
-
-func TestPriority(t *testing.T) {
-	str := PriorityLow.String()
-
-	if len(str) < 1 {
-		t.Error("Expected Low, returned empty string")
-	}
-
-	str = PriorityHigh.String()
-
-	if len(str) < 1 {
-		t.Error("Expected High, returned empty string")
-	}
 }
 
 //TestWithTLS using gmail port 587

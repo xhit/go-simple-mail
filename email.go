@@ -78,7 +78,7 @@ const (
 
 var encryptionTypes = [...]string{"TLS", "SSL", "None"}
 
-func (encryption encryption) String() string {
+func (encryption encryption) string() string {
 	return encryptionTypes[encryption]
 }
 
@@ -95,8 +95,23 @@ const (
 
 var encodingTypes = [...]string{"quoted-printable", "base64", "binary"}
 
-func (encoding encoding) String() string {
+func (encoding encoding) string() string {
 	return encodingTypes[encoding]
+}
+
+type contentType int
+
+const (
+	// TextHTML sets body type to text/html in message body
+	TextHTML contentType = iota
+	// TextPlain sets body type to text/plain in message body
+	TextPlain
+)
+
+var contentTypes = [...]string{"text/html", "text/plain"}
+
+func (contentType contentType) string() string {
+	return contentTypes[contentType]
 }
 
 // NewMSG creates a new email. It uses UTF-8 by default.
@@ -309,12 +324,6 @@ const (
 	PriorityLow
 )
 
-var priorities = [...]string{"High", "Low"}
-
-func (priority priority) String() string {
-	return priorities[priority]
-}
-
 // SetPriority sets the email message priority. Use with
 // either "High" or "Low".
 func (email *Email) SetPriority(priority priority) *Email {
@@ -376,14 +385,14 @@ func (email *Email) SetSubject(subject string) *Email {
 }
 
 // SetBody sets the body of the email message.
-func (email *Email) SetBody(contentType, body string) *Email {
+func (email *Email) SetBody(contentType contentType, body string) *Email {
 	if email.Error != nil {
 		return email
 	}
 
 	email.parts = []part{
 		{
-			contentType: contentType,
+			contentType: contentType.string(),
 			body:        bytes.NewBufferString(body),
 		},
 	}
@@ -448,14 +457,14 @@ func (email *Email) AddHeaders(headers textproto.MIMEHeader) *Email {
 // of the email message. This is most commonly used to add an
 // html version in addition to a plain text version that was
 // already added with SetBody.
-func (email *Email) AddAlternative(contentType, body string) *Email {
+func (email *Email) AddAlternative(contentType contentType, body string) *Email {
 	if email.Error != nil {
 		return email
 	}
 
 	email.parts = append(email.parts,
 		part{
-			contentType: contentType,
+			contentType: contentType.string(),
 			body:        bytes.NewBufferString(body),
 		},
 	)
@@ -675,7 +684,7 @@ func dial(host string, port string, encryption encryption, config *tls.Config) (
 	}
 
 	if err != nil {
-		return nil, errors.New("Mail Error on dailing with encryption type " + encryption.String() + ": " + err.Error())
+		return nil, errors.New("Mail Error on dailing with encryption type " + encryption.string() + ": " + err.Error())
 	}
 
 	c, err := newClient(conn, host)

@@ -220,7 +220,7 @@ func (msg *message) addBody(contentType string, body []byte) {
 
 	header := make(textproto.MIMEHeader)
 	header.Set("Content-Type", contentType+"; charset="+msg.charset)
-	header.Set("Content-Transfer-Encoding", msg.encoding.String())
+	header.Set("Content-Transfer-Encoding", msg.encoding.string())
 	msg.write(header, body, msg.encoding)
 }
 
@@ -235,7 +235,7 @@ func (msg *message) addFiles(files []*file, inline bool) {
 	for _, file := range files {
 		header := make(textproto.MIMEHeader)
 		header.Set("Content-Type", file.mimeType+";\n \tname=\""+encodeHeader(escapeQuotes(file.filename), msg.charset, 6)+`"`)
-		header.Set("Content-Transfer-Encoding", encoding.String())
+		header.Set("Content-Transfer-Encoding", encoding.string())
 		if inline {
 			header.Set("Content-Disposition", "inline;\n \tfilename=\""+encodeHeader(escapeQuotes(file.filename), msg.charset, 10)+`"`)
 			header.Set("Content-ID", "<"+msg.getCID(file.filename)+">")
