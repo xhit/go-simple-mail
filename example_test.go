@@ -46,12 +46,16 @@ func TestSendMail(t *testing.T) {
 	//Connect to client
 	smtpClient, err := client.Connect()
 
+	if err != nil {
+		t.Error("Expected nil, got", err, "connecting to client")
+	}
+
 	//NOOP command, optional, used for avoid timeout when KeepAlive is true and you aren't sending mails.
 	//Execute this command each 30 seconds is ideal for persistent connection
 	err = smtpClient.Noop()
 
 	if err != nil {
-		t.Error("Expected nil, got", err, "connecting to client")
+		t.Error("Expected nil, got", err, "noop to client")
 	}
 
 	//Create the email message

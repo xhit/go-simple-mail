@@ -1,7 +1,7 @@
 // Copyright 2010 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in https://raw.githubusercontent.com/golang/go/master/LICENSE
-//Package modified by Santiago De la Cruz for Go Simple Mail https://github.com/xhit/go-simple-mail
+// auth.go file is a modification of smtp golang package what is frozen and is not accepting new features.
 
 package mail
 

@@ -7,13 +7,10 @@
 //	8BITMIME  RFC 1652
 //	AUTH      RFC 2554
 //	STARTTLS  RFC 3207
-// Additional extensions may be handled by clients.
-//
-// The smtp package is frozen and is not accepting new features.
-// Some external packages provide more functionality. See:
-//
-//   https://godoc.org/?q=smtp
-//Package modified by Santiago De la Cruz for Go Simple Mail https://github.com/xhit/go-simple-mail
+// Additional extensions may be handled by clients using smtp.go in golang source code or pull request Go Simple Mail
+
+// smtp.go file is a modification of smtp golang package what is frozen and is not accepting new features.
+
 package mail
 
 import (

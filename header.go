@@ -77,7 +77,7 @@ func (e *encoder) encode(p []byte) (n int, err error) {
 				}
 
 				//firstLine = false
-				firstWord = true
+				//firstWord = true
 				// reset since not on the first line anymore
 				e.usedChars = 0
 			}
