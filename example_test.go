@@ -19,7 +19,7 @@ var (
 	</body>
 </html>`
 
-	host           = "nsaq500awin"
+	host           = "localhost"
 	port           = 25
 	username       = "test@example.com"
 	password       = "santiago"
@@ -46,10 +46,9 @@ func TestSendMail(t *testing.T) {
 	//Connect to client
 	smtpClient, err := client.Connect()
 
-	//smtpClient is a struct that contain *Client, so you can apply to this the commands directly commands
-
-	//NOOP
-	smtpClient.Client.Noop()
+	//NOOP command, optional, used for avoid timeout when KeepAlive is true and you aren't sending mails.
+	//Execute this command each 30 seconds is ideal for persistent connection
+	err = smtpClient.Noop()
 
 	if err != nil {
 		t.Error("Expected nil, got", err, "connecting to client")
@@ -121,8 +120,6 @@ func TestSendMultipleEmails(t *testing.T) {
 	//Connect to client
 	smtpClient, err := client.Connect()
 
-	smtpClient.Client.helo()
-
 	if err != nil {
 		t.Error("Expected nil, got", err, "connecting to client")
 	}
@@ -171,4 +168,62 @@ func TestPriority(t *testing.T) {
 	if len(str) < 1 {
 		t.Error("Expected High, returned empty string")
 	}
+}
+
+//TestWithTLS using gmail port 587
+func TestWithTLS(t *testing.T) {
+	client := NewSMTPClient()
+
+	//SMTP Client
+	client.Host = "smtp.gmail.com"
+	client.Port = 587
+	client.Username = "aaa@gmail.com"
+	client.Password = "asdfghh"
+	client.Encryption = EncryptionTLS
+	client.ConnectTimeout = 10 * time.Second
+	client.SendTimeout = 10 * time.Second
+
+	//KeepAlive is not settted because by default is false
+
+	//Connect to client
+	smtpClient, err := client.Connect()
+
+	if err != nil {
+		t.Error("Expected nil, got", err, "connecting to client")
+	}
+
+	err = sendEmail(htmlBody, "bbb@gmail.com", smtpClient)
+	if err != nil {
+		t.Error("Expected nil, got", err, "sending email")
+	}
+
+}
+
+//TestWithTLS using gmail port 465
+func TestWithSSL(t *testing.T) {
+	client := NewSMTPClient()
+
+	//SMTP Client
+	client.Host = "smtp.gmail.com"
+	client.Port = 465
+	client.Username = "aaa@gmail.com"
+	client.Password = "asdfghh"
+	client.Encryption = EncryptionSSL
+	client.ConnectTimeout = 10 * time.Second
+	client.SendTimeout = 10 * time.Second
+
+	//KeepAlive is not settted because by default is false
+
+	//Connect to client
+	smtpClient, err := client.Connect()
+
+	if err != nil {
+		t.Error("Expected nil, got", err, "connecting to client")
+	}
+
+	err = sendEmail(htmlBody, "bbb@gmail.com", smtpClient)
+	if err != nil {
+		t.Error("Expected nil, got", err, "sending email")
+	}
+
 }

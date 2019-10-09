@@ -11,8 +11,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/joegrasse/mime/header"
 )
 
 type message struct {
@@ -39,8 +37,8 @@ func encodeHeader(text string, charset string, usedChars int) string {
 	buf := new(bytes.Buffer)
 
 	// encode
-	encoder := header.NewEncoder(buf, charset, usedChars)
-	encoder.Encode([]byte(text))
+	encoder := newEncoder(buf, charset, usedChars)
+	encoder.encode([]byte(text))
 
 	return buf.String()
 

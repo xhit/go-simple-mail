@@ -13,6 +13,7 @@
 // Some external packages provide more functionality. See:
 //
 //   https://godoc.org/?q=smtp
+//Package modified by Santiago De la Cruz for Go Simple Mail https://github.com/xhit/go-simple-mail
 package mail
 
 import (
@@ -27,10 +28,9 @@ import (
 )
 
 // A Client represents a client connection to an SMTP server.
-type Client struct {
-	// Text is the textproto.Conn used by the Client. It is exported to allow for
-	// clients to add extensions.
-	Text *textproto.Conn
+type smtpClient struct {
+	// Text is the textproto.Conn used by the Client.
+	text *textproto.Conn
 	// keep a reference to the connection so it can be used to create a TLS
 	// connection later
 	conn net.Conn
@@ -40,33 +40,33 @@ type Client struct {
 	// map of supported extensions
 	ext map[string]string
 	// supported auth mechanisms
-	auth       []string
+	a          []string
 	localName  string // the name to use in HELO/EHLO
 	didHello   bool   // whether we've said HELO/EHLO
 	helloError error  // the error from the hello
 }
 
-// NewClient returns a new Client using an existing connection and host as a
+// newClient returns a new smtpClient using an existing connection and host as a
 // server name to be used when authenticating.
-func NewClient(conn net.Conn, host string) (*Client, error) {
+func newClient(conn net.Conn, host string) (*smtpClient, error) {
 	text := textproto.NewConn(conn)
 	_, _, err := text.ReadResponse(220)
 	if err != nil {
 		text.Close()
 		return nil, err
 	}
-	c := &Client{Text: text, conn: conn, serverName: host, localName: "localhost"}
+	c := &smtpClient{text: text, conn: conn, serverName: host, localName: "localhost"}
 	_, c.tls = conn.(*tls.Conn)
 	return c, nil
 }
 
 // Close closes the connection.
-func (c *Client) Close() error {
-	return c.Text.Close()
+func (c *smtpClient) close() error {
+	return c.text.Close()
 }
 
 // hello runs a hello exchange if needed.
-func (c *Client) hello() error {
+func (c *smtpClient) hello() error {
 	if !c.didHello {
 		c.didHello = true
 		err := c.ehlo()
@@ -77,12 +77,12 @@ func (c *Client) hello() error {
 	return c.helloError
 }
 
-// Hello sends a HELO or EHLO to the server as the given host name.
+// hi sends a HELO or EHLO to the server as the given host name.
 // Calling this method is only necessary if the client needs control
 // over the host name used. The client will introduce itself as "localhost"
 // automatically otherwise. If Hello is called, it must be called before
 // any of the other methods.
-func (c *Client) Hello(localName string) error {
+func (c *smtpClient) hi(localName string) error {
 	if err := validateLine(localName); err != nil {
 		return err
 	}
@@ -94,20 +94,20 @@ func (c *Client) Hello(localName string) error {
 }
 
 // cmd is a convenience function that sends a command and returns the response
-func (c *Client) cmd(expectCode int, format string, args ...interface{}) (int, string, error) {
-	id, err := c.Text.Cmd(format, args...)
+func (c *smtpClient) cmd(expectCode int, format string, args ...interface{}) (int, string, error) {
+	id, err := c.text.Cmd(format, args...)
 	if err != nil {
 		return 0, "", err
 	}
-	c.Text.StartResponse(id)
-	defer c.Text.EndResponse(id)
-	code, msg, err := c.Text.ReadResponse(expectCode)
+	c.text.StartResponse(id)
+	defer c.text.EndResponse(id)
+	code, msg, err := c.text.ReadResponse(expectCode)
 	return code, msg, err
 }
 
 // helo sends the HELO greeting to the server. It should be used only when the
 // server does not support ehlo.
-func (c *Client) helo() error {
+func (c *smtpClient) helo() error {
 	c.ext = nil
 	_, _, err := c.cmd(250, "HELO %s", c.localName)
 	return err
@@ -115,7 +115,7 @@ func (c *Client) helo() error {
 
 // ehlo sends the EHLO (extended hello) greeting to the server. It
 // should be the preferred greeting for servers that support it.
-func (c *Client) ehlo() error {
+func (c *smtpClient) ehlo() error {
 	_, msg, err := c.cmd(250, "EHLO %s", c.localName)
 	if err != nil {
 		return err
@@ -134,15 +134,15 @@ func (c *Client) ehlo() error {
 		}
 	}
 	if mechs, ok := ext["AUTH"]; ok {
-		c.auth = strings.Split(mechs, " ")
+		c.a = strings.Split(mechs, " ")
 	}
 	c.ext = ext
 	return err
 }
 
-// StartTLS sends the STARTTLS command and encrypts all further communication.
+// startTLS sends the STARTTLS command and encrypts all further communication.
 // Only servers that advertise the STARTTLS extension support this function.
-func (c *Client) StartTLS(config *tls.Config) error {
+func (c *smtpClient) startTLS(config *tls.Config) error {
 	if err := c.hello(); err != nil {
 		return err
 	}
@@ -151,22 +151,22 @@ func (c *Client) StartTLS(config *tls.Config) error {
 		return err
 	}
 	c.conn = tls.Client(c.conn, config)
-	c.Text = textproto.NewConn(c.conn)
+	c.text = textproto.NewConn(c.conn)
 	c.tls = true
 	return c.ehlo()
 }
 
-// Auth authenticates a client using the provided authentication mechanism.
+// authenticate authenticates a client using the provided authentication mechanism.
 // A failed authentication closes the connection.
 // Only servers that advertise the AUTH extension support this function.
-func (c *Client) Auth(a Auth) error {
+func (c *smtpClient) authenticate(a auth) error {
 	if err := c.hello(); err != nil {
 		return err
 	}
 	encoding := base64.StdEncoding
-	mech, resp, err := a.Start(&ServerInfo{c.serverName, c.tls, c.auth})
+	mech, resp, err := a.start(&serverInfo{c.serverName, c.tls, c.a})
 	if err != nil {
-		c.Quit()
+		c.quit()
 		return err
 	}
 	resp64 := make([]byte, encoding.EncodedLen(len(resp)))
@@ -184,12 +184,12 @@ func (c *Client) Auth(a Auth) error {
 			err = &textproto.Error{Code: code, Msg: msg64}
 		}
 		if err == nil {
-			resp, err = a.Next(msg, code == 334)
+			resp, err = a.next(msg, code == 334)
 		}
 		if err != nil {
 			// abort the AUTH
 			c.cmd(501, "*")
-			c.Quit()
+			c.quit()
 			break
 		}
 		if resp == nil {
@@ -202,11 +202,11 @@ func (c *Client) Auth(a Auth) error {
 	return err
 }
 
-// Mail issues a MAIL command to the server using the provided email address.
+// mail issues a MAIL command to the server using the provided email address.
 // If the server supports the 8BITMIME extension, Mail adds the BODY=8BITMIME
 // parameter.
 // This initiates a mail transaction and is followed by one or more Rcpt calls.
-func (c *Client) Mail(from string) error {
+func (c *smtpClient) mail(from string) error {
 	if err := validateLine(from); err != nil {
 		return err
 	}
@@ -223,10 +223,10 @@ func (c *Client) Mail(from string) error {
 	return err
 }
 
-// Rcpt issues a RCPT command to the server using the provided email address.
+// rcpt issues a RCPT command to the server using the provided email address.
 // A call to Rcpt must be preceded by a call to Mail and may be followed by
 // a Data call or another Rcpt call.
-func (c *Client) Rcpt(to string) error {
+func (c *smtpClient) rcpt(to string) error {
 	if err := validateLine(to); err != nil {
 		return err
 	}
@@ -235,33 +235,33 @@ func (c *Client) Rcpt(to string) error {
 }
 
 type dataCloser struct {
-	c *Client
+	c *smtpClient
 	io.WriteCloser
 }
 
 func (d *dataCloser) Close() error {
 	d.WriteCloser.Close()
-	_, _, err := d.c.Text.ReadResponse(250)
+	_, _, err := d.c.text.ReadResponse(250)
 	return err
 }
 
-// Data issues a DATA command to the server and returns a writer that
+// data issues a DATA command to the server and returns a writer that
 // can be used to write the mail headers and body. The caller should
 // close the writer before calling any more methods on c. A call to
 // Data must be preceded by one or more calls to Rcpt.
-func (c *Client) Data() (io.WriteCloser, error) {
+func (c *smtpClient) data() (io.WriteCloser, error) {
 	_, _, err := c.cmd(354, "DATA")
 	if err != nil {
 		return nil, err
 	}
-	return &dataCloser{c, c.Text.DotWriter()}, nil
+	return &dataCloser{c, c.text.DotWriter()}, nil
 }
 
-// Extension reports whether an extension is support by the server.
+// extension reports whether an extension is support by the server.
 // The extension name is case-insensitive. If the extension is supported,
-// Extension also returns a string that contains any parameters the
+// extension also returns a string that contains any parameters the
 // server specifies for the extension.
-func (c *Client) Extension(ext string) (bool, string) {
+func (c *smtpClient) extension(ext string) (bool, string) {
 	if err := c.hello(); err != nil {
 		return false, ""
 	}
@@ -273,9 +273,9 @@ func (c *Client) Extension(ext string) (bool, string) {
 	return ok, param
 }
 
-// Reset sends the RSET command to the server, aborting the current mail
+// reset sends the RSET command to the server, aborting the current mail
 // transaction.
-func (c *Client) Reset() error {
+func (c *smtpClient) reset() error {
 	if err := c.hello(); err != nil {
 		return err
 	}
@@ -283,9 +283,9 @@ func (c *Client) Reset() error {
 	return err
 }
 
-// Noop sends the NOOP command to the server. It does nothing but check
+// noop sends the NOOP command to the server. It does nothing but check
 // that the connection to the server is okay.
-func (c *Client) Noop() error {
+func (c *smtpClient) noop() error {
 	if err := c.hello(); err != nil {
 		return err
 	}
@@ -293,8 +293,8 @@ func (c *Client) Noop() error {
 	return err
 }
 
-// Quit sends the QUIT command and closes the connection to the server.
-func (c *Client) Quit() error {
+// quit sends the QUIT command and closes the connection to the server.
+func (c *smtpClient) quit() error {
 	if err := c.hello(); err != nil {
 		return err
 	}
@@ -302,7 +302,7 @@ func (c *Client) Quit() error {
 	if err != nil {
 		return err
 	}
-	return c.Text.Close()
+	return c.text.Close()
 }
 
 // validateLine checks to see if a line has CR or LF as per RFC 5321

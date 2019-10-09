@@ -1,3 +1,5 @@
+# Go Simple Mail
+
 The best way to send emails in Go with SMTP Keep Alive and Timeout for Connect and Send.
 
 [![Go Doc](https://godoc.org/github.com/xhit/go-simple-mail?status.svg)](https://godoc.org/github.com/xhit/go-simple-mail)
@@ -6,13 +8,34 @@ The best way to send emails in Go with SMTP Keep Alive and Timeout for Connect a
 **IMPORTANT**
 This example is for version 2.1.3 and above, for v2.0.0 example go here https://gist.github.com/xhit/54516917473420a8db1b6fff68a21c99
 
-**Download**
+# Introduction
+
+Go Simple Mail is a simple and efficient package to send emails. It is well tested and
+documented.
+
+Go Simple Mail can only send emails using an SMTP server. But the API is flexible and it
+is easy to implement other methods for sending emails using a local Postfix, an API, etc.
+
+## Features
+
+Go Simple Mail supports:
+- Attachments
+- Embedded images
+- HTML and text templates
+- Automatic encoding of special characters
+- SSL and TLS
+- Unencrypted connection (not recommended)
+- Sending multiple emails with the same SMTP connection (Keep Alive or Persistent Connection)
+- Timeout for connect to a SMTP Server
+- Timeout for send an email
+
+## Download
 
 ```bash
 go get -u github.com/xhit/go-simple-mail
 ```
 
-**Usage**
+# Usage
 
 ```go
 package main
@@ -47,7 +70,7 @@ func main() {
 	server.Encryption = mail.EncryptionTLS
 	
 	//Variable to keep alive connection
-	server.KeepAlive = true
+	server.KeepAlive = false
 	
 	//Timeout for connect to SMTP Server
 	server.ConnectTimeout = 10 * time.Second
@@ -82,31 +105,36 @@ func main() {
 	} else {
 		log.Println("Email Sent")
 	}
-
-
-	//Other email with same connection and attachments
-	email = mail.NewMSG()
-	
-	email.SetFrom("HELLO <nube@example.com>").
-		AddTo("xhit@example.com").
-		SetSubject("dfgdfgdf")
-
-	email.SetBody("text/plain", "Hello Gophers!")
-	email.AddAlternative("text/html", htmlBody)
-
-	email.AddAttachment("path/to/file","filename test")
-	email.AddAttachment("path/to/file2")
-
-	// also you can attach a base64 instead a file path
-	email.AddAttachmentBase64("SGVsbG8gZ29waGVycyE=", "hello.txt")
-
-	//Call Send and pass the client
-	err = email.Send(smtpClient)
-
-	if err != nil {
-		log.Println(err)
-	} else {
-		log.Println("Email Sent")
-	}
 }
+```
+
+## Send multiple emails in same connection
+
+```go
+	//Set your smtpClient struct to keep alive connection
+	server.KeepAlive = true
+
+	toList := [3]string{"to1@example1.com", "to3@example2.com", "to4@example3.com"}
+
+	for _, to := range toList {
+		//New email simple html with inline and CC
+		email := mail.NewMSG()
+
+		email.SetFrom("From Example <nube@example.com>").
+			AddTo(to).
+			SetSubject("New Go Email")
+
+		email.SetBody("text/html", htmlBody)
+
+		email.AddInline("/path/to/image.png", "Gopher.png")
+
+		//Call Send and pass the client
+		err = email.Send(smtpClient)
+
+		if err != nil {
+			log.Println(err)
+		} else {
+			log.Println("Email Sent")
+		}
+	}
 ```
