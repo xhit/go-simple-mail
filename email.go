@@ -68,15 +68,15 @@ type file struct {
 type encryption int
 
 const (
-	// EncryptionTLS sets encryption type to TLS when sending email
-	EncryptionTLS encryption = iota
+	// EncryptionNone uses no encryption when sending email
+	EncryptionNone encryption = iota
 	// EncryptionSSL sets encryption type to SSL when sending email
 	EncryptionSSL
-	// EncryptionNone uses no encryption when sending email
-	EncryptionNone
+	// EncryptionTLS sets encryption type to TLS when sending email
+	EncryptionTLS
 )
 
-var encryptionTypes = [...]string{"TLS", "SSL", "None"}
+var encryptionTypes = [...]string{"None", "SSL", "TLS"}
 
 func (encryption encryption) string() string {
 	return encryptionTypes[encryption]
@@ -85,15 +85,15 @@ func (encryption encryption) string() string {
 type encoding int
 
 const (
-	// EncodingQuotedPrintable sets the message body encoding to quoted-printable
-	EncodingQuotedPrintable encoding = iota
+	// EncodingNone turns off encoding on the message body
+	EncodingNone encoding = iota
 	// EncodingBase64 sets the message body encoding to base64
 	EncodingBase64
-	// EncodingNone turns off encoding on the message body
-	EncodingNone
+	// EncodingQuotedPrintable sets the message body encoding to quoted-printable
+	EncodingQuotedPrintable
 )
 
-var encodingTypes = [...]string{"quoted-printable", "base64", "binary"}
+var encodingTypes = [...]string{"binary", "base64", "quoted-printable"}
 
 func (encoding encoding) string() string {
 	return encodingTypes[encoding]
@@ -102,19 +102,19 @@ func (encoding encoding) string() string {
 type contentType int
 
 const (
-	// TextHTML sets body type to text/html in message body
-	TextHTML contentType = iota
 	// TextPlain sets body type to text/plain in message body
-	TextPlain
+	TextPlain contentType = iota
+	// TextHTML sets body type to text/html in message body
+	TextHTML
 )
 
-var contentTypes = [...]string{"text/html", "text/plain"}
+var contentTypes = [...]string{"text/plain", "text/html"}
 
 func (contentType contentType) string() string {
 	return contentTypes[contentType]
 }
 
-// NewMSG creates a new email. It uses UTF-8 by default.
+// NewMSG creates a new email. It uses UTF-8 by default. All charsets: http://webcheatsheet.com/HTML/character_sets_list.php
 func NewMSG() *Email {
 	email := &Email{
 		headers:  make(textproto.MIMEHeader),
@@ -318,10 +318,10 @@ func addAddress(addressList []string, address string) ([]string, error) {
 type priority int
 
 const (
-	// PriorityHigh sets the email priority to High
-	PriorityHigh priority = iota
 	// PriorityLow sets the email priority to Low
-	PriorityLow
+	PriorityLow priority = iota
+	// PriorityHigh sets the email priority to High
+	PriorityHigh
 )
 
 // SetPriority sets the email message priority. Use with
@@ -332,17 +332,17 @@ func (email *Email) SetPriority(priority priority) *Email {
 	}
 
 	switch priority {
-	case PriorityHigh:
-		email.AddHeaders(textproto.MIMEHeader{
-			"X-Priority":        {"1 (Highest)"},
-			"X-MSMail-Priority": {"High"},
-			"Importance":        {"High"},
-		})
 	case PriorityLow:
 		email.AddHeaders(textproto.MIMEHeader{
 			"X-Priority":        {"5 (Lowest)"},
 			"X-MSMail-Priority": {"Low"},
 			"Importance":        {"Low"},
+		})
+	case PriorityHigh:
+		email.AddHeaders(textproto.MIMEHeader{
+			"X-Priority":        {"1 (Highest)"},
+			"X-MSMail-Priority": {"High"},
+			"Importance":        {"High"},
 		})
 	default:
 	}
@@ -813,47 +813,21 @@ func send(from string, to []string, msg string, client *SMTPClient) error {
 		if client.Client != nil {
 			var smtpSendChannel chan error
 
-			smtpSendChannel = make(chan error, 1)
+			// if there is a SendTimeout, setup the channel and do the send under a goroutine
+			if client.SendTimeout != 0 {
+				smtpSendChannel = make(chan error, 1)
 
-			go func(c *smtpClient) {
-				// Set the sender
-				if err := c.mail(from); err != nil {
-					smtpSendChannel <- err
-					return
-				}
+				go func(from string, to []string, msg string, c *smtpClient) {
+					smtpSendChannel <- sendMailProcess(from, to, msg, c)
+				}(from, to, msg, client.Client)
+			}
 
-				// Set the recipients
-				for _, address := range to {
-					if err := c.rcpt(address); err != nil {
-						smtpSendChannel <- err
-						return
-					}
-				}
+			if client.SendTimeout == 0 {
+				// no SendTimeout, just fire the sendMailProcess
+				return sendMailProcess(from, to, msg, client.Client)
+			}
 
-				// Send the data command
-				w, err := c.data()
-				if err != nil {
-					smtpSendChannel <- err
-					return
-				}
-
-				// write the message
-				_, err = fmt.Fprint(w, msg)
-				if err != nil {
-					smtpSendChannel <- err
-					return
-				}
-
-				err = w.Close()
-				if err != nil {
-					smtpSendChannel <- err
-					return
-				}
-
-				smtpSendChannel <- err
-
-			}(client.Client)
-
+			// get the send result or timeout result, which ever happens first
 			select {
 			case sendError := <-smtpSendChannel:
 				checkKeepAlive(client)
@@ -862,10 +836,44 @@ func send(from string, to []string, msg string, client *SMTPClient) error {
 				checkKeepAlive(client)
 				return errors.New("Mail Error: SMTP Send timed out")
 			}
+
 		}
 	}
 
 	return errors.New("Mail Error: No SMTP Client Provided")
+}
+
+func sendMailProcess(from string, to []string, msg string, c *smtpClient) error {
+	// Set the sender
+	if err := c.mail(from); err != nil {
+		return err
+	}
+
+	// Set the recipients
+	for _, address := range to {
+		if err := c.rcpt(address); err != nil {
+			return err
+		}
+	}
+
+	// Send the data command
+	w, err := c.data()
+	if err != nil {
+		return err
+	}
+
+	// write the message
+	_, err = fmt.Fprint(w, msg)
+	if err != nil {
+		return err
+	}
+
+	err = w.Close()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 //check if keepAlive for close or reset
