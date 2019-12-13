@@ -7,6 +7,8 @@ package mail
 
 import (
 	"errors"
+	"fmt"
+	"strings"
 )
 
 // auth is implemented by an SMTP authentication mechanism.
@@ -62,12 +64,39 @@ func (a *plainAuth) start(server *serverInfo) (string, []byte, error) {
 	if server.name != a.host {
 		return "", nil, errors.New("wrong host name")
 	}
-	resp := []byte(a.identity + "\x00" + a.username + "\x00" + a.password)
-	return "PLAIN", resp, nil
+
+	supportedMechs := map[string]bool{}
+	for _, mech := range server.auth {
+		supportedMechs[mech] = true
+	}
+
+	// PLAIN auth sends the full auth in 1 command.
+	if _, ok := supportedMechs["PLAIN"]; ok {
+		resp := []byte(a.identity + "\x00" + a.username + "\x00" + a.password)
+		return "PLAIN", resp, nil
+	}
+
+	// LOGIN auth first sends the username, then the password in a later command.
+	if _, ok := supportedMechs["LOGIN"]; ok {
+		resp := []byte(a.username)
+		return "LOGIN", resp, nil
+	}
+
+	return "", nil, errors.New(fmt.Sprintf("Unsupported auth mechs, only supported mechs are: " + strings.Join(server.auth, ", ")))
 }
 
 func (a *plainAuth) next(fromServer []byte, more bool) ([]byte, error) {
 	if more {
+		if strings.Contains(string(fromServer), "Username") {
+			resp := []byte(a.username)
+			return resp, nil
+		}
+
+		if strings.Contains(string(fromServer), "Password") {
+			resp := []byte(a.password)
+			return resp, nil
+		}
+
 		// We've already sent everything.
 		return nil, errors.New("unexpected server challenge")
 	}
