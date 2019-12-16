@@ -577,7 +577,7 @@ func (email *Email) attach(f string, inline bool, name ...string) error {
 	return nil
 }
 
-// attachB64 does the low level attaching of the files but decoding base64 instad have a filepath
+// attachB64 does the low level attaching of the files but decoding base64 instead have a filepath
 func (email *Email) attachB64(b64File string, name string) error {
 
 	// decode the string
