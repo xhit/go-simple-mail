@@ -32,9 +32,12 @@ type Email struct {
 	SMTPServer  *smtpClient
 }
 
-//SMTPServer represents a SMTP Server
+/*
+SMTPServer represents a SMTP Server
+If authentication is CRAM-MD5 then the Password is the Secret
+*/
 type SMTPServer struct {
-	// From           string
+	Authentication authType
 	Encryption     encryption
 	Username       string
 	Password       string
@@ -114,6 +117,17 @@ func (contentType contentType) string() string {
 	return contentTypes[contentType]
 }
 
+type authType int
+
+const (
+	// AuthPlain implements the PLAIN authentication
+	AuthPlain authType = iota
+	// AuthLogin implements the LOGIN authentication
+	AuthLogin
+	// AuthCRAMMD5 implements the CRAM-MD5 authentication
+	AuthCRAMMD5
+)
+
 // NewMSG creates a new email. It uses UTF-8 by default. All charsets: http://webcheatsheet.com/HTML/character_sets_list.php
 func NewMSG() *Email {
 	email := &Email{
@@ -130,6 +144,7 @@ func NewMSG() *Email {
 //NewSMTPClient returns the client for send email
 func NewSMTPClient() *SMTPServer {
 	server := &SMTPServer{
+		Authentication: AuthPlain,
 		Encryption:     EncryptionNone,
 		ConnectTimeout: 10 * time.Second,
 		SendTimeout:    10 * time.Second,
@@ -744,8 +759,19 @@ func (server *SMTPServer) Connect() (*SMTPClient, error) {
 
 	var a auth
 
-	if server.Username != "" || server.Password != "" {
-		a = plainAuthfn("", server.Username, server.Password, server.Host)
+	switch server.Authentication {
+	case AuthPlain:
+		if server.Username != "" || server.Password != "" {
+			a = plainAuthfn("", server.Username, server.Password, server.Host)
+		}
+	case AuthLogin:
+		if server.Username != "" || server.Password != "" {
+			a = loginAuthfn("", server.Username, server.Password, server.Host)
+		}
+	case AuthCRAMMD5:
+		if server.Username != "" || server.Password != "" {
+			a = cramMD5Authfn(server.Username, server.Password)
+		}
 	}
 
 	var smtpConnectChannel chan error

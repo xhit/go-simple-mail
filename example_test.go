@@ -116,6 +116,9 @@ func TestSendMultipleEmails(t *testing.T) {
 	client.ConnectTimeout = connectTimeout
 	client.SendTimeout = sendTimeout
 
+	//For authentication you can use AuthPlain, AuthLogin or AuthCRAMMD5
+	client.Authentication = AuthPlain
+
 	//KeepAlive true because the connection need to be open for multiple emails
 	//For avoid inactivity timeout, every 30 second you can send a NO OPERATION command to smtp client
 	//use smtpClient.Client.Noop() after 30 second of inactivity in this example

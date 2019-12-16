@@ -42,6 +42,7 @@ Go Simple Mail supports:
 - CC and BCC
 - Add Custom Headers in Message
 - Send NOOP, RESET, QUIT and CLOSE to SMTP client
+- PLAIN, LOGIN and CRAM-MD5 Authentication
 
 ## Documentation
 
