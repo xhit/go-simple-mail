@@ -42,7 +42,7 @@ Go Simple Mail supports:
 - CC and BCC
 - Add Custom Headers in Message
 - Send NOOP, RESET, QUIT and CLOSE to SMTP client
-- PLAIN, LOGIN and CRAM-MD5 Authentication ( >= v2.3)
+- PLAIN, LOGIN and CRAM-MD5 Authentication ( >= v2.3.0)
 
 ## Documentation
 
@@ -89,7 +89,7 @@ func main() {
 	server.Encryption = mail.EncryptionTLS
 
 	/*
-	In version >=2.3 you can specified authentication type: PLAIN, LOGIN, CRAM-MD5
+	In version >=2.3.0 you can specified authentication type: PLAIN, LOGIN, CRAM-MD5
 	if not specified, default is mail.AuthPlain
 
 	code:
