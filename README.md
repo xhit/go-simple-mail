@@ -2,16 +2,16 @@
 
 The best way to send emails in Go with SMTP Keep Alive and Timeout for Connect and Send.
 
-[![Go Doc](https://pkg.go.dev/github.com/xhit/go-simple-mail/v2?status.svg)](https://pkg.go.dev/github.com/xhit/go-simple-mail/v2?tab=doc)
+[![Go Doc](https://godoc.org/github.com/xhit/go-simple-mail?status.svg](https://pkg.go.dev/github.com/xhit/go-simple-mail/v2?tab=doc)
 [![Go Report](https://goreportcard.com/badge/github.com/xhit/go-simple-mail/v2)](https://goreportcard.com/report/github.com/xhit/go-simple-mail)
 
-**IMPORTANT**
+# IMPORTANT
 This example is for version 2.2.0 and above. 
 
 Version 2.1.3 and below use strings "text/html" and "text/plain" in SetBody and AddAlternative
 Also 2.0.0 and below go to this doc https://gist.github.com/xhit/54516917473420a8db1b6fff68a21c99
 
-The base of this package is mail package from Joe Grasse https://github.com/joegrasse/mail and mime package of same author https://github.com/joegrasse/mime that are not supported since Jun 29, 2018 and Oct 1, 2015 respectively. A lot of changes in Go Simple Mail were sent with not response.
+The base of this package is mail package from **Joe Grasse** https://github.com/joegrasse/mail and mime package of same author https://github.com/joegrasse/mime that are not supported since Jun 29, 2018 and Oct 1, 2015 respectively. A lot of changes in Go Simple Mail were sent with not response.
 
 # Introduction
 
