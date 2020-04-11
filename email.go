@@ -786,15 +786,6 @@ func (server *SMTPServer) Connect() (*SMTPClient, error) {
 			// send the result
 			smtpConnectChannel <- err
 		}()
-	}
-
-	if server.ConnectTimeout == 0 {
-		// no ConnectTimeout, just fire the connect
-		c, err = smtpConnect(server.Host, fmt.Sprintf("%d", server.Port), a, server.Encryption, new(tls.Config))
-		if err != nil {
-			return nil, err
-		}
-	} else {
 		// get the connect result or timeout result, which ever happens first
 		select {
 		case err = <-smtpConnectChannel:
@@ -803,6 +794,12 @@ func (server *SMTPServer) Connect() (*SMTPClient, error) {
 			}
 		case <-time.After(server.ConnectTimeout):
 			return nil, errors.New("Mail Error: SMTP Connection timed out")
+		}
+	} else {
+		// no ConnectTimeout, just fire the connect
+		c, err = smtpConnect(server.Host, fmt.Sprintf("%d", server.Port), a, server.Encryption, new(tls.Config))
+		if err != nil {
+			return nil, err
 		}
 	}
 
