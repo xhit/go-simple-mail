@@ -260,10 +260,18 @@ func (email *Email) AddAddresses(header string, addresses ...string) *Email {
 
 	// check to see if the addresses are valid
 	for i := range addresses {
-		address, err := mail.ParseAddress(addresses[i])
-		if err != nil {
-			email.Error = errors.New("Mail Error: " + err.Error() + "; Header: [" + header + "] Address: [" + addresses[i] + "]")
-			return email
+		var address = new(mail.Address)
+		var err error
+
+		// ignore parse the address if empty
+		if len(addresses[i]) > 0 {
+			address, err = mail.ParseAddress(addresses[i])
+			if err != nil {
+				email.Error = errors.New("Mail Error: " + err.Error() + "; Header: [" + header + "] Address: [" + addresses[i] + "]")
+				return email
+			}
+		} else {
+			continue
 		}
 
 		// check for more than one address
