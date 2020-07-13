@@ -46,6 +46,7 @@ type SMTPServer struct {
 	Host           string
 	Port           int
 	KeepAlive      bool
+	TLSConfig      *tls.Config
 }
 
 //SMTPClient represents a SMTP Client for send email
@@ -738,10 +739,6 @@ func smtpConnect(host string, port string, a auth, encryption encryption, config
 	// start TLS if necessary
 	if encryption == EncryptionTLS {
 		if ok, _ := c.extension("STARTTLS"); ok {
-			if config.ServerName == "" {
-				config = &tls.Config{ServerName: host}
-			}
-
 			if err = c.startTLS(config); err != nil {
 				c.close()
 				return nil, errors.New("Mail Error on Start TLS: " + err.Error())
@@ -786,11 +783,16 @@ func (server *SMTPServer) Connect() (*SMTPClient, error) {
 	var c *smtpClient
 	var err error
 
+	tlsConfig := server.TLSConfig
+	if tlsConfig == nil {
+		tlsConfig = &tls.Config{ServerName: server.Host}
+	}
+
 	// if there is a ConnectTimeout, setup the channel and do the connect under a goroutine
 	if server.ConnectTimeout != 0 {
 		smtpConnectChannel = make(chan error, 2)
 		go func() {
-			c, err = smtpConnect(server.Host, fmt.Sprintf("%d", server.Port), a, server.Encryption, new(tls.Config))
+			c, err = smtpConnect(server.Host, fmt.Sprintf("%d", server.Port), a, server.Encryption, tlsConfig)
 			// send the result
 			smtpConnectChannel <- err
 		}()
@@ -805,7 +807,7 @@ func (server *SMTPServer) Connect() (*SMTPClient, error) {
 		}
 	} else {
 		// no ConnectTimeout, just fire the connect
-		c, err = smtpConnect(server.Host, fmt.Sprintf("%d", server.Port), a, server.Encryption, new(tls.Config))
+		c, err = smtpConnect(server.Host, fmt.Sprintf("%d", server.Port), a, server.Encryption, tlsConfig)
 		if err != nil {
 			return nil, err
 		}

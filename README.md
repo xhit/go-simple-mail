@@ -111,6 +111,14 @@ func main() {
 	
 	//Timeout for send the data and wait respond
 	server.SendTimeout = 10 * time.Second
+
+    /*
+    You can provide a custom TLS configuration, for example to skip TLS
+    verification for testing.
+
+    code:
+    server.TLSConfig = &tls.Config{InsecureSkipVerify: true}
+    */
 	
 	//SMTP client
 	smtpClient,err :=server.Connect()
