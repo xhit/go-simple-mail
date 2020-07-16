@@ -48,6 +48,7 @@ Go Simple Mail supports:
 - Add Custom Headers in Message
 - Send NOOP, RESET, QUIT and CLOSE to SMTP client
 - PLAIN, LOGIN and CRAM-MD5 Authentication ( >= v2.3.0)
+- Custom TLS Configuration (>= v2.5.0)
 
 ## Documentation
 
@@ -74,17 +75,17 @@ import (
 func main() {
 
 	htmlBody :=
-`<html>
-	<head>
-		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-		<title>Hello Gophers!</title>
-	</head>
-	<body>
-		<p>This is the <b>Go gopher</b>.</p>
-		<p><img src="cid:Gopher.png" alt="Go gopher" /></p>
-		<p>Image created by Renee French</p>
-	</body>
-</html>`
+	`<html>
+		<head>
+			<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+			<title>Hello Gophers!</title>
+		</head>
+		<body>
+			<p>This is the <b>Go gopher</b>.</p>
+			<p><img src="cid:Gopher.png" alt="Go gopher" /></p>
+			<p>Image created by Renee French</p>
+		</body>
+	</html>`
 
 	server := mail.NewSMTPClient()
 	
@@ -112,13 +113,13 @@ func main() {
 	//Timeout for send the data and wait respond
 	server.SendTimeout = 10 * time.Second
 
-    /*
-    You can provide a custom TLS configuration, for example to skip TLS
-    verification for testing.
+	/*
+	You can provide a custom TLS configuration, for example to skip TLS
+	verification for testing.
 
-    code:
-    server.TLSConfig = &tls.Config{InsecureSkipVerify: true}
-    */
+	code:
+	server.TLSConfig = &tls.Config{InsecureSkipVerify: true}
+	*/
 	
 	//SMTP client
 	smtpClient,err :=server.Connect()
