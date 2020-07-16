@@ -10,6 +10,10 @@ The best way to send emails in Go with SMTP Keep Alive and Timeout for Connect a
 
 Examples in this readme is for v2.2.0 and above. 
 
+Minimun Go version: 1.13
+
+For Go 1.12 and below, use branch `go1.12`.
+
 Versions <= v2.1.3 use strings "text/html" and "text/plain" in `SetBody` and `AddAlternative`.
 
 Examples for versions <= v2.0.0 go here: https://gist.github.com/xhit/54516917473420a8db1b6fff68a21c99
