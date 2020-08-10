@@ -610,8 +610,8 @@ func (email *Email) attachB64(b64File string, name string) error {
 	return nil
 }
 
-// getFrom returns the sender of the email, if any
-func (email *Email) getFrom() string {
+// GetFrom returns the sender of the email, if any
+func (email *Email) GetFrom() string {
 	from := email.returnPath
 	if from == "" {
 		from = email.sender

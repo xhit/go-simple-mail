@@ -1,11 +1,13 @@
-package mail
+package example
 
 import (
 	"testing"
 	"time"
+
+	mail "github.com/xhit/go-simple-mail/v2"
 )
 
-//Some variables to connect and the body
+// Some variables to connect and the body.
 var (
 	htmlBody = `<html>
 	<head>
@@ -23,15 +25,14 @@ var (
 	port           = 25
 	username       = "test@example.com"
 	password       = "santiago"
-	encryptionType = EncryptionNone
+	encryptionType = mail.EncryptionNone
 	connectTimeout = 10 * time.Second
 	sendTimeout    = 10 * time.Second
 )
 
-//TestSendMailWithAttachment send a simple html email
+// TestSendMailWithAttachment send a simple html email.
 func TestSendMail(t *testing.T) {
-
-	client := NewSMTPClient()
+	client := mail.NewSMTPClient()
 
 	//SMTP Client
 	client.Host = host
@@ -59,14 +60,14 @@ func TestSendMail(t *testing.T) {
 	}
 
 	//Create the email message
-	email := NewMSG()
+	email := mail.NewMSG()
 
 	email.SetFrom("From Example <test@example.com>").
 		AddTo("admin@example.com").
 		SetSubject("New Go Email")
 
-	email.SetBody(TextHTML, htmlBody)
-	email.AddAlternative(TextPlain, "Hello Gophers!")
+	email.SetBody(mail.TextHTML, htmlBody)
+	email.AddAlternative(mail.TextPlain, "Hello Gophers!")
 
 	//Some additional options to send
 	email.SetSender("xhit@test.com")
@@ -88,7 +89,7 @@ func TestSendMail(t *testing.T) {
 	email.SetDate("2015-04-28 10:32:00 CDT")
 
 	//Send with low priority
-	email.SetPriority(PriorityLow)
+	email.SetPriority(mail.PriorityLow)
 
 	//Pass the client to the email message to send it
 	err = email.Send(smtpClient)
@@ -99,13 +100,11 @@ func TestSendMail(t *testing.T) {
 	if err != nil {
 		t.Error("Expected nil, got", err, "sending email")
 	}
-
 }
 
-//TestSendMultipleEmails send multiple emails in same connection
+// TestSendMultipleEmails send multiple emails in same connection.
 func TestSendMultipleEmails(t *testing.T) {
-
-	client := NewSMTPClient()
+	client := mail.NewSMTPClient()
 
 	//SMTP Client
 	client.Host = host
@@ -117,7 +116,7 @@ func TestSendMultipleEmails(t *testing.T) {
 	client.SendTimeout = sendTimeout
 
 	//For authentication you can use AuthPlain, AuthLogin or AuthCRAMMD5
-	client.Authentication = AuthPlain
+	client.Authentication = mail.AuthPlain
 
 	//KeepAlive true because the connection need to be open for multiple emails
 	//For avoid inactivity timeout, every 30 second you can send a NO OPERATION command to smtp client
@@ -139,23 +138,22 @@ func TestSendMultipleEmails(t *testing.T) {
 			t.Error("Expected nil, got", err, "sending email")
 		}
 	}
-
 }
 
-func sendEmail(htmlBody string, to string, smtpClient *SMTPClient) error {
+func sendEmail(htmlBody string, to string, smtpClient *mail.SMTPClient) error {
 	//Create the email message
-	email := NewMSG()
+	email := mail.NewMSG()
 
 	email.SetFrom("From Example <from.email@example.com>").
 		AddTo(to).
 		SetSubject("New Go Email")
 
 	//Get from each mail
-	email.getFrom()
-	email.SetBody(TextHTML, htmlBody)
+	email.GetFrom()
+	email.SetBody(mail.TextHTML, htmlBody)
 
 	//Send with high priority
-	email.SetPriority(PriorityHigh)
+	email.SetPriority(mail.PriorityHigh)
 
 	//Pass the client to the email message to send it
 	err := email.Send(smtpClient)
@@ -163,16 +161,16 @@ func sendEmail(htmlBody string, to string, smtpClient *SMTPClient) error {
 	return err
 }
 
-//TestWithTLS using gmail port 587
+// TestWithTLS using gmail port 587.
 func TestWithTLS(t *testing.T) {
-	client := NewSMTPClient()
+	client := mail.NewSMTPClient()
 
 	//SMTP Client
 	client.Host = "smtp.gmail.com"
 	client.Port = 587
 	client.Username = "aaa@gmail.com"
 	client.Password = "asdfghh"
-	client.Encryption = EncryptionTLS
+	client.Encryption = mail.EncryptionTLS
 	client.ConnectTimeout = 10 * time.Second
 	client.SendTimeout = 10 * time.Second
 
@@ -189,19 +187,18 @@ func TestWithTLS(t *testing.T) {
 	if err != nil {
 		t.Error("Expected nil, got", err, "sending email")
 	}
-
 }
 
-//TestWithTLS using gmail port 465
+// TestWithTLS using gmail port 465.
 func TestWithSSL(t *testing.T) {
-	client := NewSMTPClient()
+	client := mail.NewSMTPClient()
 
 	//SMTP Client
 	client.Host = "smtp.gmail.com"
 	client.Port = 465
 	client.Username = "aaa@gmail.com"
 	client.Password = "asdfghh"
-	client.Encryption = EncryptionSSL
+	client.Encryption = mail.EncryptionSSL
 	client.ConnectTimeout = 10 * time.Second
 	client.SendTimeout = 10 * time.Second
 
@@ -218,5 +215,4 @@ func TestWithSSL(t *testing.T) {
 	if err != nil {
 		t.Error("Expected nil, got", err, "sending email")
 	}
-
 }
