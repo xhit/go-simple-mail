@@ -61,7 +61,7 @@ Go Simple Mail supports:
 - Timeout for connect to a SMTP Server
 - Timeout for send an email
 - Return Path
-- Alternaive Email Body
+- Alternative Email Body
 - CC and BCC
 - Add Custom Headers in Message
 - Send NOOP, RESET, QUIT and CLOSE to SMTP client
@@ -91,7 +91,7 @@ import (
 	"github.com/xhit/go-simple-mail/v2"
 )
 
-const htmlBody := `<html>
+const htmlBody = `<html>
 	<head>
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 		<title>Hello Gophers!</title>
