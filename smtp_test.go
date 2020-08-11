@@ -27,6 +27,8 @@ type authTest struct {
 var authTests = []authTest{
 	{plainAuthfn("", "user", "pass", "testserver"), []string{}, "PLAIN", []string{"\x00user\x00pass"}},
 	{plainAuthfn("foo", "bar", "baz", "testserver"), []string{}, "PLAIN", []string{"foo\x00bar\x00baz"}},
+	{loginAuthfn("", "bar", "baz", "testserver"), []string{}, "LOGIN", []string{"bar"}},
+	{loginAuthfn("foo", "bar", "baz", "testserver"), []string{}, "LOGIN", []string{"bar"}},
 	{cramMD5Authfn("user", "pass"), []string{"<123456.1322876914@testserver>"}, "CRAM-MD5", []string{"", "user 287eb355114cf5c471c26a875f1ca4ae"}},
 }
 
@@ -71,7 +73,7 @@ func TestAuthPlain(t *testing.T) {
 			server:   &serverInfo{name: "servername", tls: true},
 		},
 		{
-			// OK to use PlainAuth on localhost without TLS
+			// OK to use plainAuthfn on localhost without TLS
 			authName: "localhost",
 			server:   &serverInfo{name: "localhost", tls: false},
 		},
@@ -83,6 +85,41 @@ func TestAuthPlain(t *testing.T) {
 	}
 	for i, tt := range tests {
 		auth := plainAuthfn("foo", "bar", "baz", tt.authName)
+		_, _, err := auth.start(tt.server)
+		got := ""
+		if err != nil {
+			got = err.Error()
+		}
+		if got != tt.err {
+			t.Errorf("%d. got error = %q; want %q", i, got, tt.err)
+		}
+	}
+}
+
+func TestAuthLogin(t *testing.T) {
+
+	tests := []struct {
+		authName string
+		server   *serverInfo
+		err      string
+	}{
+		{
+			authName: "servername",
+			server:   &serverInfo{name: "servername", tls: true},
+		},
+		{
+			// OK to use loginAuthfn on localhost without TLS
+			authName: "localhost",
+			server:   &serverInfo{name: "localhost", tls: false},
+		},
+		{
+			authName: "servername",
+			server:   &serverInfo{name: "attacker", tls: true},
+			err:      "wrong host name",
+		},
+	}
+	for i, tt := range tests {
+		auth := loginAuthfn("foo", "bar", "baz", tt.authName)
 		_, _, err := auth.start(tt.server)
 		got := ""
 		if err != nil {
