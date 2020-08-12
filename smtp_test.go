@@ -310,6 +310,219 @@ Goodbye.
 QUIT
 `
 
+func TestExtensions(t *testing.T) {
+	faker := func(server string) (c *smtpClient, bcmdbuf *bufio.Writer, cmdbuf *bytes.Buffer) {
+		server = strings.Join(strings.Split(server, "\n"), "\r\n")
+
+		cmdbuf = &bytes.Buffer{}
+		bcmdbuf = bufio.NewWriter(cmdbuf)
+		var fake faker
+		fake.ReadWriter = bufio.NewReadWriter(bufio.NewReader(strings.NewReader(server)), bcmdbuf)
+		c = &smtpClient{text: textproto.NewConn(fake), localName: "localhost"}
+
+		return c, bcmdbuf, cmdbuf
+	}
+
+	t.Run("helo", func(t *testing.T) {
+		const (
+			basicServer = `250 mx.google.com at your service
+250 Sender OK
+221 Goodbye
+`
+
+			basicClient = `HELO localhost
+MAIL FROM:<user@gmail.com>
+QUIT
+`
+		)
+
+		c, bcmdbuf, cmdbuf := faker(basicServer)
+
+		if err := c.helo(); err != nil {
+			t.Fatalf("HELO failed: %s", err)
+		}
+		c.didHello = true
+		if err := c.mail("user@gmail.com"); err != nil {
+			t.Fatalf("MAIL FROM failed: %s", err)
+		}
+		if err := c.quit(); err != nil {
+			t.Fatalf("QUIT failed: %s", err)
+		}
+
+		bcmdbuf.Flush()
+		actualcmds := cmdbuf.String()
+		client := strings.Join(strings.Split(basicClient, "\n"), "\r\n")
+		if client != actualcmds {
+			t.Fatalf("Got:\n%s\nExpected:\n%s", actualcmds, client)
+		}
+	})
+
+	t.Run("ehlo", func(t *testing.T) {
+		const (
+			basicServer = `250-mx.google.com at your service
+250 SIZE 35651584
+250 Sender OK
+221 Goodbye
+`
+
+			basicClient = `EHLO localhost
+MAIL FROM:<user@gmail.com>
+QUIT
+`
+		)
+
+		c, bcmdbuf, cmdbuf := faker(basicServer)
+
+		if err := c.hi("localhost"); err != nil {
+			t.Fatalf("EHLO failed: %s", err)
+		}
+		if ok, _ := c.extension("8BITMIME"); ok {
+			t.Fatalf("Shouldn't support 8BITMIME")
+		}
+		if ok, _ := c.extension("SMTPUTF8"); ok {
+			t.Fatalf("Shouldn't support SMTPUTF8")
+		}
+		if err := c.mail("user@gmail.com"); err != nil {
+			t.Fatalf("MAIL FROM failed: %s", err)
+		}
+		if err := c.quit(); err != nil {
+			t.Fatalf("QUIT failed: %s", err)
+		}
+
+		bcmdbuf.Flush()
+		actualcmds := cmdbuf.String()
+		client := strings.Join(strings.Split(basicClient, "\n"), "\r\n")
+		if client != actualcmds {
+			t.Fatalf("Got:\n%s\nExpected:\n%s", actualcmds, client)
+		}
+	})
+
+	t.Run("ehlo 8bitmime", func(t *testing.T) {
+		const (
+			basicServer = `250-mx.google.com at your service
+250-SIZE 35651584
+250 8BITMIME
+250 Sender OK
+221 Goodbye
+`
+
+			basicClient = `EHLO localhost
+MAIL FROM:<user@gmail.com> BODY=8BITMIME
+QUIT
+`
+		)
+
+		c, bcmdbuf, cmdbuf := faker(basicServer)
+
+		if err := c.hi("localhost"); err != nil {
+			t.Fatalf("EHLO failed: %s", err)
+		}
+		if ok, _ := c.extension("8BITMIME"); !ok {
+			t.Fatalf("Should support 8BITMIME")
+		}
+		if ok, _ := c.extension("SMTPUTF8"); ok {
+			t.Fatalf("Shouldn't support SMTPUTF8")
+		}
+		if err := c.mail("user@gmail.com"); err != nil {
+			t.Fatalf("MAIL FROM failed: %s", err)
+		}
+		if err := c.quit(); err != nil {
+			t.Fatalf("QUIT failed: %s", err)
+		}
+
+		bcmdbuf.Flush()
+		actualcmds := cmdbuf.String()
+		client := strings.Join(strings.Split(basicClient, "\n"), "\r\n")
+		if client != actualcmds {
+			t.Fatalf("Got:\n%s\nExpected:\n%s", actualcmds, client)
+		}
+	})
+
+	t.Run("ehlo smtputf8", func(t *testing.T) {
+		const (
+			basicServer = `250-mx.google.com at your service
+250-SIZE 35651584
+250 SMTPUTF8
+250 Sender OK
+221 Goodbye
+`
+
+			basicClient = `EHLO localhost
+MAIL FROM:<user+📧@gmail.com> SMTPUTF8
+QUIT
+`
+		)
+
+		c, bcmdbuf, cmdbuf := faker(basicServer)
+
+		if err := c.hi("localhost"); err != nil {
+			t.Fatalf("EHLO failed: %s", err)
+		}
+		if ok, _ := c.extension("8BITMIME"); ok {
+			t.Fatalf("Shouldn't support 8BITMIME")
+		}
+		if ok, _ := c.extension("SMTPUTF8"); !ok {
+			t.Fatalf("Should support SMTPUTF8")
+		}
+		if err := c.mail("user+📧@gmail.com"); err != nil {
+			t.Fatalf("MAIL FROM failed: %s", err)
+		}
+		if err := c.quit(); err != nil {
+			t.Fatalf("QUIT failed: %s", err)
+		}
+
+		bcmdbuf.Flush()
+		actualcmds := cmdbuf.String()
+		client := strings.Join(strings.Split(basicClient, "\n"), "\r\n")
+		if client != actualcmds {
+			t.Fatalf("Got:\n%s\nExpected:\n%s", actualcmds, client)
+		}
+	})
+
+	t.Run("ehlo 8bitmime smtputf8", func(t *testing.T) {
+		const (
+			basicServer = `250-mx.google.com at your service
+250-SIZE 35651584
+250-8BITMIME
+250 SMTPUTF8
+250 Sender OK
+221 Goodbye
+	`
+
+			basicClient = `EHLO localhost
+MAIL FROM:<user+📧@gmail.com> BODY=8BITMIME SMTPUTF8
+QUIT
+`
+		)
+
+		c, bcmdbuf, cmdbuf := faker(basicServer)
+
+		if err := c.hi("localhost"); err != nil {
+			t.Fatalf("EHLO failed: %s", err)
+		}
+		c.didHello = true
+		if ok, _ := c.extension("8BITMIME"); !ok {
+			t.Fatalf("Should support 8BITMIME")
+		}
+		if ok, _ := c.extension("SMTPUTF8"); !ok {
+			t.Fatalf("Should support SMTPUTF8")
+		}
+		if err := c.mail("user+📧@gmail.com"); err != nil {
+			t.Fatalf("MAIL FROM failed: %s", err)
+		}
+		if err := c.quit(); err != nil {
+			t.Fatalf("QUIT failed: %s", err)
+		}
+
+		bcmdbuf.Flush()
+		actualcmds := cmdbuf.String()
+		client := strings.Join(strings.Split(basicClient, "\n"), "\r\n")
+		if client != actualcmds {
+			t.Fatalf("Got:\n%s\nExpected:\n%s", actualcmds, client)
+		}
+	})
+}
+
 func TestNewClient(t *testing.T) {
 	server := strings.Join(strings.Split(newClientServer, "\n"), "\r\n")
 	client := strings.Join(strings.Split(newClientClient, "\n"), "\r\n")

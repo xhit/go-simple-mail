@@ -5,6 +5,7 @@
 // Package mail implements the Simple Mail Transfer Protocol as defined in RFC 5321.
 // It also implements the following extensions:
 //	8BITMIME  RFC 1652
+//	SMTPUTF8  RFC 6531
 //	AUTH      RFC 2554
 //	STARTTLS  RFC 3207
 // Additional extensions may be handled by clients using smtp.go in golang source code or pull request Go Simple Mail
@@ -202,6 +203,8 @@ func (c *smtpClient) authenticate(a auth) error {
 // mail issues a MAIL command to the server using the provided email address.
 // If the server supports the 8BITMIME extension, Mail adds the BODY=8BITMIME
 // parameter.
+// If the server supports the SMTPUTF8 extension, Mail adds the
+// SMTPUTF8 parameter.
 // This initiates a mail transaction and is followed by one or more Rcpt calls.
 func (c *smtpClient) mail(from string) error {
 	if err := validateLine(from); err != nil {
@@ -214,6 +217,9 @@ func (c *smtpClient) mail(from string) error {
 	if c.ext != nil {
 		if _, ok := c.ext["8BITMIME"]; ok {
 			cmdStr += " BODY=8BITMIME"
+		}
+		if _, ok := c.ext["SMTPUTF8"]; ok {
+			cmdStr += " SMTPUTF8"
 		}
 	}
 	_, _, err := c.cmd(250, cmdStr, from)
