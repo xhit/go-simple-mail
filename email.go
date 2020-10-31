@@ -38,7 +38,7 @@ If authentication is CRAM-MD5 then the Password is the Secret
 */
 type SMTPServer struct {
 	Authentication authType
-	Encryption     encryption
+	Encryption     Encryption
 	Username       string
 	Password       string
 	ConnectTimeout time.Duration
@@ -69,11 +69,11 @@ type file struct {
 	data     []byte
 }
 
-type encryption int
+type Encryption int
 
 const (
 	// EncryptionNone uses no encryption when sending email
-	EncryptionNone encryption = iota
+	EncryptionNone Encryption = iota
 	// EncryptionSSL sets encryption type to SSL when sending email
 	EncryptionSSL
 	// EncryptionTLS sets encryption type to TLS when sending email
@@ -82,7 +82,7 @@ const (
 
 var encryptionTypes = [...]string{"None", "SSL", "TLS"}
 
-func (encryption encryption) string() string {
+func (encryption Encryption) string() string {
 	return encryptionTypes[encryption]
 }
 
@@ -693,7 +693,7 @@ func (email *Email) Send(client *SMTPClient) error {
 }
 
 // dial connects to the smtp server with the request encryption type
-func dial(host string, port string, encryption encryption, config *tls.Config) (*smtpClient, error) {
+func dial(host string, port string, encryption Encryption, config *tls.Config) (*smtpClient, error) {
 	var conn net.Conn
 	var err error
 
@@ -722,7 +722,7 @@ func dial(host string, port string, encryption encryption, config *tls.Config) (
 
 // smtpConnect connects to the smtp server and starts TLS and passes auth
 // if necessary
-func smtpConnect(host string, port string, a auth, encryption encryption, config *tls.Config) (*smtpClient, error) {
+func smtpConnect(host string, port string, a auth, encryption Encryption, config *tls.Config) (*smtpClient, error) {
 	// connect to the mail server
 	c, err := dial(host, port, encryption, config)
 
