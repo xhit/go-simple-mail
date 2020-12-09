@@ -547,6 +547,28 @@ func (email *Email) AddInline(file string, name ...string) *Email {
 	return email
 }
 
+// AddInlineData allows you to add an inline bytes attachment to the email message.
+func (email *Email) AddInlineData(data []byte, filename, mimeType string) *Email {
+	if email.Error != nil {
+		return email
+	}
+
+	if mimeType == "" {
+		mimeType = mime.TypeByExtension(filepath.Ext(filename))
+		if mimeType == "" {
+			mimeType = "application/octet-stream"
+		}
+	}
+
+	email.inlines = append(email.inlines, &file{
+		filename: filename,
+		mimeType: mimeType,
+		data:     data,
+	})
+
+	return email
+}
+
 // attach does the low level attaching of the files
 func (email *Email) attach(f string, inline bool, name ...string) error {
 	// Get the file data
