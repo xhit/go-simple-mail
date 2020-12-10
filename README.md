@@ -47,6 +47,8 @@ Go Simple Mail supports:
 
 - Multiple Attachments with path
 - Multiple Attachments in base64
+- Multiple Attachments from bytes
+- Inline attachments from file, base64 and bytes
 - Multiple Recipients
 - Priority
 - Reply to
