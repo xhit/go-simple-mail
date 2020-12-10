@@ -513,6 +513,17 @@ func (email *Email) AddAttachment(file string, name ...string) *Email {
 	return email
 }
 
+// AddAttachmentData allows you to add an in-memory attachment to the email message.
+func (email *Email) AddAttachmentData(data []byte, filename, mimeType string) *Email {
+	if email.Error != nil {
+		return email
+	}
+
+	email.attachData(data, false, filename, mimeType)
+
+	return email
+}
+
 // AddAttachmentBase64 allows you to add an attachment in base64 to the email message.
 // You need provide a name for the file.
 func (email *Email) AddAttachmentBase64(b64File string, name string) *Email {
@@ -543,6 +554,17 @@ func (email *Email) AddInline(file string, name ...string) *Email {
 	}
 
 	email.Error = email.attach(file, true, name...)
+
+	return email
+}
+
+// AddInlineData allows you to add an inline in-memory attachment to the email message.
+func (email *Email) AddInlineData(data []byte, filename, mimeType string) *Email {
+	if email.Error != nil {
+		return email
+	}
+
+	email.attachData(data, true, filename, mimeType)
 
 	return email
 }
@@ -584,6 +606,30 @@ func (email *Email) attach(f string, inline bool, name ...string) error {
 	}
 
 	return nil
+}
+
+// attachData does the low level attaching of the in-memory data
+func (email *Email) attachData(data []byte, inline bool, filename, mimeType string) {
+	if mimeType == "" {
+		mimeType = mime.TypeByExtension(filepath.Ext(filename))
+		if mimeType == "" {
+			mimeType = "application/octet-stream"
+		}
+	}
+
+	if inline {
+		email.inlines = append(email.inlines, &file{
+			filename: filename,
+			mimeType: mimeType,
+			data:     data,
+		})
+	} else {
+		email.attachments = append(email.attachments, &file{
+			filename: filename,
+			mimeType: mimeType,
+			data:     data,
+		})
+	}
 }
 
 // attachB64 does the low level attaching of the files but decoding base64 instead have a filepath
