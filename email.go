@@ -277,8 +277,6 @@ func (email *Email) AddAddresses(header string, addresses ...string) *Email {
 
 		// check for more than one address
 		switch {
-		case header == "From" && len(email.from) > 0:
-			fallthrough
 		case header == "Sender" && len(email.sender) > 0:
 			fallthrough
 		case header == "Reply-To" && len(email.replyTo) > 0:
@@ -293,6 +291,11 @@ func (email *Email) AddAddresses(header string, addresses ...string) *Email {
 		// save the address
 		switch header {
 		case "From":
+			// delete the current "From" to set the new
+			// when "From" need to be changed in the message
+			if len(email.from) > 0 && header == "From" {
+				email.headers.Del("From")
+			}
 			email.from = address.Address
 		case "Sender":
 			email.sender = address.Address
