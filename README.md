@@ -47,13 +47,14 @@ Go Simple Mail supports:
 
 - Multiple Attachments with path
 - Multiple Attachments in base64
-- Multiple Attachments from bytes
-- Inline attachments from file, base64 and bytes
+- Multiple Attachments from bytes (since v2.6.0)
+- Inline attachments from file, base64 and bytes (bytes since v2.6.0)
 - Multiple Recipients
 - Priority
 - Reply to
-- Set other sender
-- Set other from
+- Set sender
+- Set from
+- Allow sending mail with different envelope from (since v2.7.0)
 - Embedded images
 - HTML and text templates
 - Automatic encoding of special characters
