@@ -41,6 +41,7 @@ type SMTPServer struct {
 	Encryption     encryption
 	Username       string
 	Password       string
+	Helo           string
 	ConnectTimeout time.Duration
 	SendTimeout    time.Duration
 	Host           string
@@ -149,6 +150,7 @@ func NewSMTPClient() *SMTPServer {
 		Encryption:     EncryptionNone,
 		ConnectTimeout: 10 * time.Second,
 		SendTimeout:    10 * time.Second,
+		Helo:           "localhost",
 	}
 	return server
 }
@@ -779,7 +781,7 @@ func dial(host string, port string, encryption encryption, config *tls.Config) (
 
 // smtpConnect connects to the smtp server and starts TLS and passes auth
 // if necessary
-func smtpConnect(host string, port string, a auth, encryption encryption, config *tls.Config) (*smtpClient, error) {
+func smtpConnect(host, port, helo string, a auth, encryption encryption, config *tls.Config) (*smtpClient, error) {
 	// connect to the mail server
 	c, err := dial(host, port, encryption, config)
 
@@ -787,8 +789,12 @@ func smtpConnect(host string, port string, a auth, encryption encryption, config
 		return nil, err
 	}
 
-	// send Hello
-	if err = c.hi("localhost"); err != nil {
+	if helo == "" {
+		helo = "localhost"
+	}
+
+	// send Helo
+	if err = c.hi(helo); err != nil {
 		c.close()
 		return nil, fmt.Errorf("Mail Error on Hello: %w", err)
 	}
@@ -849,7 +855,7 @@ func (server *SMTPServer) Connect() (*SMTPClient, error) {
 	if server.ConnectTimeout != 0 {
 		smtpConnectChannel = make(chan error, 2)
 		go func() {
-			c, err = smtpConnect(server.Host, fmt.Sprintf("%d", server.Port), a, server.Encryption, tlsConfig)
+			c, err = smtpConnect(server.Host, fmt.Sprintf("%d", server.Port), server.Helo, a, server.Encryption, tlsConfig)
 			// send the result
 			smtpConnectChannel <- err
 		}()
@@ -864,7 +870,7 @@ func (server *SMTPServer) Connect() (*SMTPClient, error) {
 		}
 	} else {
 		// no ConnectTimeout, just fire the connect
-		c, err = smtpConnect(server.Host, fmt.Sprintf("%d", server.Port), a, server.Encryption, tlsConfig)
+		c, err = smtpConnect(server.Host, fmt.Sprintf("%d", server.Port), server.Helo, a, server.Encryption, tlsConfig)
 		if err != nil {
 			return nil, err
 		}
