@@ -441,6 +441,9 @@ func (email *Email) AddHeader(header string, values ...string) *Email {
 		return email
 	}
 
+	// Set header to correct canonical Mime
+	header = textproto.CanonicalMIMEHeaderKey(header)
+
 	switch header {
 	case "Sender":
 		fallthrough
