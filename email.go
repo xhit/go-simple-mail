@@ -75,13 +75,13 @@ type encryption int
 const (
 	// EncryptionNone uses no encryption when sending email
 	EncryptionNone encryption = iota
-	// EncryptionSSL sets encryption type to SSL when sending email
+	// EncryptionSSL sets encryption type to SSL/TLS when sending email
 	EncryptionSSL
-	// EncryptionTLS sets encryption type to TLS when sending email
+	// EncryptionTLS sets encryption type to STARTTLS when sending email
 	EncryptionTLS
 )
 
-var encryptionTypes = [...]string{"None", "SSL", "TLS"}
+var encryptionTypes = [...]string{"None", "SSL/TLS", "STARTTLS"}
 
 func (encryption encryption) string() string {
 	return encryptionTypes[encryption]
