@@ -41,6 +41,7 @@ type SMTPServer struct {
 	Encryption     Encryption
 	Username       string
 	Password       string
+	Helo           string
 	ConnectTimeout time.Duration
 	SendTimeout    time.Duration
 	Host           string
@@ -69,18 +70,19 @@ type file struct {
 	data     []byte
 }
 
+// Encryption type to enum encryption types (None, SSL/TLS, STARTTLS)
 type Encryption int
 
 const (
 	// EncryptionNone uses no encryption when sending email
 	EncryptionNone Encryption = iota
-	// EncryptionSSL sets encryption type to SSL when sending email
+	// EncryptionSSL sets encryption type to SSL/TLS when sending email
 	EncryptionSSL
-	// EncryptionTLS sets encryption type to TLS when sending email
+	// EncryptionTLS sets encryption type to STARTTLS when sending email
 	EncryptionTLS
 )
 
-var encryptionTypes = [...]string{"None", "SSL", "TLS"}
+var encryptionTypes = [...]string{"None", "SSL/TLS", "STARTTLS"}
 
 func (encryption Encryption) string() string {
 	return encryptionTypes[encryption]
@@ -149,6 +151,7 @@ func NewSMTPClient() *SMTPServer {
 		Encryption:     EncryptionNone,
 		ConnectTimeout: 10 * time.Second,
 		SendTimeout:    10 * time.Second,
+		Helo:           "localhost",
 	}
 	return server
 }
@@ -277,8 +280,6 @@ func (email *Email) AddAddresses(header string, addresses ...string) *Email {
 
 		// check for more than one address
 		switch {
-		case header == "From" && len(email.from) > 0:
-			fallthrough
 		case header == "Sender" && len(email.sender) > 0:
 			fallthrough
 		case header == "Reply-To" && len(email.replyTo) > 0:
@@ -293,6 +294,11 @@ func (email *Email) AddAddresses(header string, addresses ...string) *Email {
 		// save the address
 		switch header {
 		case "From":
+			// delete the current "From" to set the new
+			// when "From" need to be changed in the message
+			if len(email.from) > 0 && header == "From" {
+				email.headers.Del("From")
+			}
 			email.from = address.Address
 		case "Sender":
 			email.sender = address.Address
@@ -436,6 +442,9 @@ func (email *Email) AddHeader(header string, values ...string) *Email {
 		return email
 	}
 
+	// Set header to correct canonical Mime
+	header = textproto.CanonicalMIMEHeaderKey(header)
+
 	switch header {
 	case "Sender":
 		fallthrough
@@ -513,6 +522,17 @@ func (email *Email) AddAttachment(file string, name ...string) *Email {
 	return email
 }
 
+// AddAttachmentData allows you to add an in-memory attachment to the email message.
+func (email *Email) AddAttachmentData(data []byte, filename, mimeType string) *Email {
+	if email.Error != nil {
+		return email
+	}
+
+	email.attachData(data, false, filename, mimeType)
+
+	return email
+}
+
 // AddAttachmentBase64 allows you to add an attachment in base64 to the email message.
 // You need provide a name for the file.
 func (email *Email) AddAttachmentBase64(b64File string, name string) *Email {
@@ -543,6 +563,17 @@ func (email *Email) AddInline(file string, name ...string) *Email {
 	}
 
 	email.Error = email.attach(file, true, name...)
+
+	return email
+}
+
+// AddInlineData allows you to add an inline in-memory attachment to the email message.
+func (email *Email) AddInlineData(data []byte, filename, mimeType string) *Email {
+	if email.Error != nil {
+		return email
+	}
+
+	email.attachData(data, true, filename, mimeType)
 
 	return email
 }
@@ -586,6 +617,30 @@ func (email *Email) attach(f string, inline bool, name ...string) error {
 	return nil
 }
 
+// attachData does the low level attaching of the in-memory data
+func (email *Email) attachData(data []byte, inline bool, filename, mimeType string) {
+	if mimeType == "" {
+		mimeType = mime.TypeByExtension(filepath.Ext(filename))
+		if mimeType == "" {
+			mimeType = "application/octet-stream"
+		}
+	}
+
+	if inline {
+		email.inlines = append(email.inlines, &file{
+			filename: filename,
+			mimeType: mimeType,
+			data:     data,
+		})
+	} else {
+		email.attachments = append(email.attachments, &file{
+			filename: filename,
+			mimeType: mimeType,
+			data:     data,
+		})
+	}
+}
+
 // attachB64 does the low level attaching of the files but decoding base64 instead have a filepath
 func (email *Email) attachB64(b64File string, name string) error {
 
@@ -626,6 +681,11 @@ func (email *Email) GetFrom() string {
 	return from
 }
 
+// GetRecipients returns a slice of recipients emails
+func (email *Email) GetRecipients() []string {
+	return email.recipients
+}
+
 func (email *Email) hasMixedPart() bool {
 	return (len(email.parts) > 0 && len(email.attachments) > 0) || len(email.attachments) > 1
 }
@@ -638,7 +698,7 @@ func (email *Email) hasAlternativePart() bool {
 	return len(email.parts) > 1
 }
 
-// GetMessage builds and returns the email message
+// GetMessage builds and returns the email message (RFC822 formatted message)
 func (email *Email) GetMessage() string {
 	msg := newMessage(email)
 
@@ -677,9 +737,18 @@ func (email *Email) GetMessage() string {
 
 // Send sends the composed email
 func (email *Email) Send(client *SMTPClient) error {
+	return email.SendEnvelopeFrom(email.from, client)
+}
 
+// SendEnvelopeFrom sends the composed email with envelope
+// sender. 'from' must be an email address.
+func (email *Email) SendEnvelopeFrom(from string, client *SMTPClient) error {
 	if email.Error != nil {
 		return email.Error
+	}
+
+	if from == "" {
+		from = email.from
 	}
 
 	if len(email.recipients) < 1 {
@@ -688,8 +757,7 @@ func (email *Email) Send(client *SMTPClient) error {
 
 	msg := email.GetMessage()
 
-	return send(email.from, email.recipients, msg, client)
-
+	return send(from, email.recipients, msg, client)
 }
 
 // dial connects to the smtp server with the request encryption type
@@ -722,7 +790,7 @@ func dial(host string, port string, encryption Encryption, config *tls.Config) (
 
 // smtpConnect connects to the smtp server and starts TLS and passes auth
 // if necessary
-func smtpConnect(host string, port string, a auth, encryption Encryption, config *tls.Config) (*smtpClient, error) {
+func smtpConnect(host, port, helo string, a auth, encryption Encryption, config *tls.Config) (*smtpClient, error) {
 	// connect to the mail server
 	c, err := dial(host, port, encryption, config)
 
@@ -730,8 +798,12 @@ func smtpConnect(host string, port string, a auth, encryption Encryption, config
 		return nil, err
 	}
 
-	// send Hello
-	if err = c.hi("localhost"); err != nil {
+	if helo == "" {
+		helo = "localhost"
+	}
+
+	// send Helo
+	if err = c.hi(helo); err != nil {
 		c.close()
 		return nil, fmt.Errorf("Mail Error on Hello: %w", err)
 	}
@@ -792,7 +864,7 @@ func (server *SMTPServer) Connect() (*SMTPClient, error) {
 	if server.ConnectTimeout != 0 {
 		smtpConnectChannel = make(chan error, 2)
 		go func() {
-			c, err = smtpConnect(server.Host, fmt.Sprintf("%d", server.Port), a, server.Encryption, tlsConfig)
+			c, err = smtpConnect(server.Host, fmt.Sprintf("%d", server.Port), server.Helo, a, server.Encryption, tlsConfig)
 			// send the result
 			smtpConnectChannel <- err
 		}()
@@ -807,7 +879,7 @@ func (server *SMTPServer) Connect() (*SMTPClient, error) {
 		}
 	} else {
 		// no ConnectTimeout, just fire the connect
-		c, err = smtpConnect(server.Host, fmt.Sprintf("%d", server.Port), a, server.Encryption, tlsConfig)
+		c, err = smtpConnect(server.Host, fmt.Sprintf("%d", server.Port), server.Helo, a, server.Encryption, tlsConfig)
 		if err != nil {
 			return nil, err
 		}
@@ -838,6 +910,19 @@ func (smtpClient *SMTPClient) Quit() error {
 // Close closes the connection
 func (smtpClient *SMTPClient) Close() error {
 	return smtpClient.Client.close()
+}
+
+// SendMessage sends a message (a RFC822 formatted message)
+// 'from' must be an email address, recipients must be a slice of email address
+func SendMessage(from string, recipients []string, msg string, client *SMTPClient) error {
+	if from == "" {
+		return errors.New("Mail Error: No From email specifier")
+	}
+	if len(recipients) < 1 {
+		return errors.New("Mail Error: No recipient specified")
+	}
+
+	return send(from, recipients, msg, client)
 }
 
 // send does the low level sending of the email
