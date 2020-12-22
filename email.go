@@ -680,6 +680,11 @@ func (email *Email) GetFrom() string {
 	return from
 }
 
+// GetRecipients returns a slice of recipients emails
+func (email *Email) GetRecipients() []string {
+	return email.recipients
+}
+
 func (email *Email) hasMixedPart() bool {
 	return (len(email.parts) > 0 && len(email.attachments) > 0) || len(email.attachments) > 1
 }
@@ -692,7 +697,7 @@ func (email *Email) hasAlternativePart() bool {
 	return len(email.parts) > 1
 }
 
-// GetMessage builds and returns the email message
+// GetMessage builds and returns the email message (RFC822 formatted message)
 func (email *Email) GetMessage() string {
 	msg := newMessage(email)
 
@@ -904,6 +909,19 @@ func (smtpClient *SMTPClient) Quit() error {
 // Close closes the connection
 func (smtpClient *SMTPClient) Close() error {
 	return smtpClient.Client.close()
+}
+
+// SendMessage sends a message (a RFC822 formatted message)
+// 'from' must be an email address, recipients must be a slice of email address
+func SendMessage(from string, recipients []string, msg string, client *SMTPClient) error {
+	if from == "" {
+		return errors.New("Mail Error: No From email specifier")
+	}
+	if len(recipients) < 1 {
+		return errors.New("Mail Error: No recipient specified")
+	}
+
+	return send(from, recipients, msg, client)
 }
 
 // send does the low level sending of the email
