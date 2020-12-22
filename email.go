@@ -84,7 +84,7 @@ const (
 
 var encryptionTypes = [...]string{"None", "SSL/TLS", "STARTTLS"}
 
-func (encryption Encryption) string() string {
+func (encryption Encryption) String() string {
 	return encryptionTypes[encryption]
 }
 
@@ -154,6 +154,11 @@ func NewSMTPClient() *SMTPServer {
 		Helo:           "localhost",
 	}
 	return server
+}
+
+// GetEncryptionType returns the encryption type used to connect to SMTP server
+func (server *SMTPServer) GetEncryptionType() Encryption {
+	return server.Encryption
 }
 
 // GetError returns the first email error encountered
@@ -776,7 +781,7 @@ func dial(host string, port string, encryption Encryption, config *tls.Config) (
 	}
 
 	if err != nil {
-		return nil, errors.New("Mail Error on dailing with encryption type " + encryption.string() + ": " + err.Error())
+		return nil, errors.New("Mail Error on dailing with encryption type " + encryption.String() + ": " + err.Error())
 	}
 
 	c, err := newClient(conn, host)
