@@ -397,6 +397,52 @@ QUIT
 		}
 	})
 
+	t.Run("ehlo size", func(t *testing.T) {
+		const (
+			basicServer = `250-mx.google.com at your service
+250-SIZE 35651584
+250 user@gmail.com OK; can accomodate 500000 byte message
+250 Sender OK
+221 Goodbye
+`
+
+			basicClient = `EHLO localhost
+MAIL FROM:<user@gmail.com> SIZE=50000
+QUIT
+`
+		)
+
+		c, bcmdbuf, cmdbuf := faker(basicServer)
+		var cmdArgs []interface{}
+
+		if err := c.hi("localhost"); err != nil {
+			t.Fatalf("EHLO failed: %s", err)
+		}
+		if ok, _ := c.extension("SIZE"); !ok {
+			t.Fatalf("Should support SIZE")
+		}
+		if ok, _ := c.extension("SMTPUTF8"); ok {
+			t.Fatalf("Shouldn't support SMTPUTF8")
+		}
+
+		if ok, _ := c.extension("SIZE"); ok {
+			cmdArgs = append(cmdArgs, 50000)
+		}
+		if err := c.mail("user@gmail.com", cmdArgs...); err != nil {
+			t.Fatalf("MAIL FROM failed: %s", err)
+		}
+		if err := c.quit(); err != nil {
+			t.Fatalf("QUIT failed: %s", err)
+		}
+
+		bcmdbuf.Flush()
+		actualcmds := cmdbuf.String()
+		client := strings.Join(strings.Split(basicClient, "\n"), "\r\n")
+		if client != actualcmds {
+			t.Fatalf("Got:\n%s\nExpected:\n%s", actualcmds, client)
+		}
+	})
+
 	t.Run("ehlo 8bitmime", func(t *testing.T) {
 		const (
 			basicServer = `250-mx.google.com at your service
