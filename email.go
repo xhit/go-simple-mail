@@ -38,7 +38,7 @@ If authentication is CRAM-MD5 then the Password is the Secret
 */
 type SMTPServer struct {
 	Authentication authType
-	Encryption     encryption
+	Encryption     Encryption
 	Username       string
 	Password       string
 	Helo           string
@@ -70,20 +70,21 @@ type file struct {
 	data     []byte
 }
 
-type encryption int
+// Encryption type to enum encryption types (None, SSL/TLS, STARTTLS)
+type Encryption int
 
 const (
 	// EncryptionNone uses no encryption when sending email
-	EncryptionNone encryption = iota
-	// EncryptionSSL sets encryption type to SSL when sending email
+	EncryptionNone Encryption = iota
+	// EncryptionSSL sets encryption type to SSL/TLS when sending email
 	EncryptionSSL
-	// EncryptionTLS sets encryption type to TLS when sending email
+	// EncryptionTLS sets encryption type to STARTTLS when sending email
 	EncryptionTLS
 )
 
-var encryptionTypes = [...]string{"None", "SSL", "TLS"}
+var encryptionTypes = [...]string{"None", "SSL/TLS", "STARTTLS"}
 
-func (encryption encryption) string() string {
+func (encryption Encryption) String() string {
 	return encryptionTypes[encryption]
 }
 
@@ -153,6 +154,11 @@ func NewSMTPClient() *SMTPServer {
 		Helo:           "localhost",
 	}
 	return server
+}
+
+// GetEncryptionType returns the encryption type used to connect to SMTP server
+func (server *SMTPServer) GetEncryptionType() Encryption {
+	return server.Encryption
 }
 
 // GetError returns the first email error encountered
@@ -441,6 +447,9 @@ func (email *Email) AddHeader(header string, values ...string) *Email {
 		return email
 	}
 
+	// Set header to correct canonical Mime
+	header = textproto.CanonicalMIMEHeaderKey(header)
+
 	switch header {
 	case "Sender":
 		fallthrough
@@ -677,6 +686,11 @@ func (email *Email) GetFrom() string {
 	return from
 }
 
+// GetRecipients returns a slice of recipients emails
+func (email *Email) GetRecipients() []string {
+	return email.recipients
+}
+
 func (email *Email) hasMixedPart() bool {
 	return (len(email.parts) > 0 && len(email.attachments) > 0) || len(email.attachments) > 1
 }
@@ -689,7 +703,7 @@ func (email *Email) hasAlternativePart() bool {
 	return len(email.parts) > 1
 }
 
-// GetMessage builds and returns the email message
+// GetMessage builds and returns the email message (RFC822 formatted message)
 func (email *Email) GetMessage() string {
 	msg := newMessage(email)
 
@@ -752,7 +766,7 @@ func (email *Email) SendEnvelopeFrom(from string, client *SMTPClient) error {
 }
 
 // dial connects to the smtp server with the request encryption type
-func dial(host string, port string, encryption encryption, config *tls.Config) (*smtpClient, error) {
+func dial(host string, port string, encryption Encryption, config *tls.Config) (*smtpClient, error) {
 	var conn net.Conn
 	var err error
 
@@ -767,7 +781,7 @@ func dial(host string, port string, encryption encryption, config *tls.Config) (
 	}
 
 	if err != nil {
-		return nil, errors.New("Mail Error on dailing with encryption type " + encryption.string() + ": " + err.Error())
+		return nil, errors.New("Mail Error on dailing with encryption type " + encryption.String() + ": " + err.Error())
 	}
 
 	c, err := newClient(conn, host)
@@ -781,7 +795,7 @@ func dial(host string, port string, encryption encryption, config *tls.Config) (
 
 // smtpConnect connects to the smtp server and starts TLS and passes auth
 // if necessary
-func smtpConnect(host, port, helo string, a auth, encryption encryption, config *tls.Config) (*smtpClient, error) {
+func smtpConnect(host, port, helo string, a auth, encryption Encryption, config *tls.Config) (*smtpClient, error) {
 	// connect to the mail server
 	c, err := dial(host, port, encryption, config)
 
@@ -901,6 +915,19 @@ func (smtpClient *SMTPClient) Quit() error {
 // Close closes the connection
 func (smtpClient *SMTPClient) Close() error {
 	return smtpClient.Client.close()
+}
+
+// SendMessage sends a message (a RFC822 formatted message)
+// 'from' must be an email address, recipients must be a slice of email address
+func SendMessage(from string, recipients []string, msg string, client *SMTPClient) error {
+	if from == "" {
+		return errors.New("Mail Error: No From email specifier")
+	}
+	if len(recipients) < 1 {
+		return errors.New("Mail Error: No recipient specified")
+	}
+
+	return send(from, recipients, msg, client)
 }
 
 // send does the low level sending of the email
