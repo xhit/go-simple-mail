@@ -626,16 +626,16 @@ func TestNewClientWithTLS(t *testing.T) {
 	}
 
 	go func() {
-		conn, err := ln.Accept()
-		if err != nil {
-			t.Errorf("server: accept: %v", err)
+		conn, errAccept := ln.Accept()
+		if errAccept != nil {
+			t.Errorf("server: accept: %v", errAccept)
 			return
 		}
 		defer conn.Close()
 
-		_, err = conn.Write([]byte("220 SIGNS\r\n"))
-		if err != nil {
-			t.Errorf("server: write: %v", err)
+		_, errWrite := conn.Write([]byte("220 SIGNS\r\n"))
+		if errWrite != nil {
+			t.Errorf("server: write: %v", errWrite)
 			return
 		}
 	}()

@@ -14,6 +14,9 @@ output:
 
 # all available settings of specific linters
 linters-settings:
+  govet:
+    # report about shadowed variables
+    check-shadowing: true
   misspell:
     locale: US
   unused:
@@ -31,6 +34,7 @@ linters:
     - exportloopref
     - golint
     - gosimple
+    - govet
     - ineffassign
     - megacheck
     - misspell
@@ -44,7 +48,6 @@ linters:
     - varcheck
   disable:
     - errcheck
-    - govet
   disable-all: false
   fast: false
 
