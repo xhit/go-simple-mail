@@ -413,7 +413,7 @@ QUIT
 		)
 
 		c, bcmdbuf, cmdbuf := faker(basicServer)
-		var cmdArgs []interface{}
+		cmdArgs := make(map[string]string)
 
 		if err := c.hi("localhost"); err != nil {
 			t.Fatalf("EHLO failed: %s", err)
@@ -426,9 +426,9 @@ QUIT
 		}
 
 		if ok, _ := c.extension("SIZE"); ok {
-			cmdArgs = append(cmdArgs, 50000)
+			cmdArgs["SIZE"] = "50000"
 		}
-		if err := c.mail("user@gmail.com", cmdArgs...); err != nil {
+		if err := c.mail("user@gmail.com", cmdArgs); err != nil {
 			t.Fatalf("MAIL FROM failed: %s", err)
 		}
 		if err := c.quit(); err != nil {

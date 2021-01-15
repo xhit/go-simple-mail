@@ -972,15 +972,14 @@ func send(from string, to []string, msg string, client *SMTPClient) error {
 
 func sendMailProcess(from string, to []string, msg string, c *smtpClient) error {
 
-	var cmdArgs []interface{}
+	cmdArgs := make(map[string]string)
 
 	if _, ok := c.ext["SIZE"]; ok {
-		size := strconv.Itoa(len(msg))
-		cmdArgs = append(cmdArgs, size)
+		cmdArgs["SIZE"] = strconv.Itoa(len(msg))
 	}
 
 	// Set the sender
-	if err := c.mail(from, cmdArgs...); err != nil {
+	if err := c.mail(from, cmdArgs); err != nil {
 		return err
 	}
 

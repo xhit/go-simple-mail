@@ -207,7 +207,14 @@ func (c *smtpClient) authenticate(a auth) error {
 // If the server supports the SMTPUTF8 extension, Mail adds the
 // SMTPUTF8 parameter.
 // This initiates a mail transaction and is followed by one or more Rcpt calls.
-func (c *smtpClient) mail(from string, args ...interface{}) error {
+func (c *smtpClient) mail(from string, extArgs ...map[string]string) error {
+	var args []interface{}
+	var extMap map[string]string
+
+	if len(extArgs) > 0 {
+		extMap = extArgs[0]
+	}
+
 	if err := validateLine(from); err != nil {
 		return err
 	}
@@ -223,8 +230,9 @@ func (c *smtpClient) mail(from string, args ...interface{}) error {
 			cmdStr += " SMTPUTF8"
 		}
 		if _, ok := c.ext["SIZE"]; ok {
-			if len(args) > 0 {
-				cmdStr += " SIZE=%d"
+			if extMap["SIZE"] != "" {
+				cmdStr += " SIZE=%s"
+				args = append(args, extMap["SIZE"])
 			}
 		}
 	}
