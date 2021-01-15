@@ -26,6 +26,7 @@ linters-settings:
 linters:
   enable:
     - asciicheck
+    - deadcode
     - dogsled
     - exportloopref
     - golint
@@ -39,12 +40,11 @@ linters:
     - structcheck
     - typecheck
     - unconvert
-  disable:
-    - deadcode
-    - errcheck
-    - govet
     - unused
     - varcheck
+  disable:
+    - errcheck
+    - govet
   disable-all: false
   fast: false
 
