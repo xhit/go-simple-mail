@@ -672,16 +672,16 @@ func TestNewClientWithTLS(t *testing.T) {
 	}
 
 	go func() {
-		conn, err := ln.Accept()
-		if err != nil {
-			t.Errorf("server: accept: %v", err)
+		conn, errAccept := ln.Accept()
+		if errAccept != nil {
+			t.Errorf("server: accept: %v", errAccept)
 			return
 		}
 		defer conn.Close()
 
-		_, err = conn.Write([]byte("220 SIGNS\r\n"))
-		if err != nil {
-			t.Errorf("server: write: %v", err)
+		_, errWrite := conn.Write([]byte("220 SIGNS\r\n"))
+		if errWrite != nil {
+			t.Errorf("server: write: %v", errWrite)
 			return
 		}
 	}()
@@ -828,30 +828,6 @@ var helloClient = []string{
 	"VRFY test@example.com\n",
 	"NOOP\n",
 }
-
-var sendMailServer = `220 hello world
-502 EH?
-250 mx.google.com at your service
-250 Sender ok
-250 Receiver ok
-354 Go ahead
-250 Data ok
-221 Goodbye
-`
-
-var sendMailClient = `EHLO localhost
-HELO localhost
-MAIL FROM:<test@example.com>
-RCPT TO:<other@example.com>
-DATA
-From: test@example.com
-To: other@example.com
-Subject: SendMail test
-
-SendMail is working for me.
-.
-QUIT
-`
 
 func TestAuthFailed(t *testing.T) {
 	server := strings.Join(strings.Split(authFailedServer, "\n"), "\r\n")

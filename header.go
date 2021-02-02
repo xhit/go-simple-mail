@@ -184,15 +184,6 @@ func secureHeader(text []byte) []byte {
 	return []byte(secureValue)
 }
 
-// isQtext returns true if c is an RFC 5322 qtext character.
-func isQtext(c byte) bool {
-	// Printable US-ASCII, excluding backslash or quote.
-	if c == '\\' || c == '"' {
-		return false
-	}
-	return '!' <= c && c <= '~'
-}
-
 // isVchar returns true if c is an RFC 5322 VCHAR character.
 func isVchar(c byte) bool {
 	// Visible (printing) characters.
