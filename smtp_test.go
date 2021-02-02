@@ -401,7 +401,7 @@ QUIT
 		const (
 			basicServer = `250-mx.google.com at your service
 250-SIZE 35651584
-250 user@gmail.com OK; can accomodate 500000 byte message
+250 user@gmail.com OK; can accommodate 500000 byte message
 250 Sender OK
 221 Goodbye
 `
