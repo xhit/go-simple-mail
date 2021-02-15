@@ -8,7 +8,7 @@
 //	SMTPUTF8  RFC 6531
 //	AUTH      RFC 2554
 //	STARTTLS  RFC 3207
-//  SIZE      RFC 1870
+//	SIZE      RFC 1870
 // Additional extensions may be handled by clients using smtp.go in golang source code or pull request Go Simple Mail
 
 // smtp.go file is a modification of smtp golang package what is frozen and is not accepting new features.
