@@ -12,6 +12,7 @@ import (
 	"net/mail"
 	"net/textproto"
 	"path/filepath"
+	"strconv"
 	"time"
 )
 
@@ -970,8 +971,15 @@ func send(from string, to []string, msg string, client *SMTPClient) error {
 }
 
 func sendMailProcess(from string, to []string, msg string, c *smtpClient) error {
+
+	cmdArgs := make(map[string]string)
+
+	if _, ok := c.ext["SIZE"]; ok {
+		cmdArgs["SIZE"] = strconv.Itoa(len(msg))
+	}
+
 	// Set the sender
-	if err := c.mail(from); err != nil {
+	if err := c.mail(from, cmdArgs); err != nil {
 		return err
 	}
 

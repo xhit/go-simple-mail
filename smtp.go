@@ -8,6 +8,7 @@
 //	SMTPUTF8  RFC 6531
 //	AUTH      RFC 2554
 //	STARTTLS  RFC 3207
+//  SIZE      RFC 1870
 // Additional extensions may be handled by clients using smtp.go in golang source code or pull request Go Simple Mail
 
 // smtp.go file is a modification of smtp golang package what is frozen and is not accepting new features.
@@ -206,7 +207,14 @@ func (c *smtpClient) authenticate(a auth) error {
 // If the server supports the SMTPUTF8 extension, Mail adds the
 // SMTPUTF8 parameter.
 // This initiates a mail transaction and is followed by one or more Rcpt calls.
-func (c *smtpClient) mail(from string) error {
+func (c *smtpClient) mail(from string, extArgs ...map[string]string) error {
+	var args []interface{}
+	var extMap map[string]string
+
+	if len(extArgs) > 0 {
+		extMap = extArgs[0]
+	}
+
 	if err := validateLine(from); err != nil {
 		return err
 	}
@@ -221,8 +229,15 @@ func (c *smtpClient) mail(from string) error {
 		if _, ok := c.ext["SMTPUTF8"]; ok {
 			cmdStr += " SMTPUTF8"
 		}
+		if _, ok := c.ext["SIZE"]; ok {
+			if extMap["SIZE"] != "" {
+				cmdStr += " SIZE=%s"
+				args = append(args, extMap["SIZE"])
+			}
+		}
 	}
-	_, _, err := c.cmd(250, cmdStr, from)
+	args = append([]interface{}{from}, args...)
+	_, _, err := c.cmd(250, cmdStr, args...)
 	return err
 }
 
