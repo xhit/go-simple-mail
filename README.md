@@ -70,6 +70,8 @@ Go Simple Mail supports:
 - Send NOOP, RESET, QUIT and CLOSE to SMTP client
 - PLAIN, LOGIN and CRAM-MD5 Authentication (since v2.3.0)
 - Custom TLS Configuration (since v2.5.0)
+- Send a RFC822 formatted message (since v2.8.0)
+- Send from localhost (yes, Go standard SMTP package cannot do that because... WTF Google!)
 
 ## Documentation
 
