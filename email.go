@@ -782,7 +782,7 @@ func dial(host string, port string, encryption Encryption, config *tls.Config) (
 	}
 
 	if err != nil {
-		return nil, errors.New("Mail Error on dailing with encryption type " + encryption.String() + ": " + err.Error())
+		return nil, errors.New("Mail Error on dialing with encryption type " + encryption.String() + ": " + err.Error())
 	}
 
 	c, err := newClient(conn, host)
