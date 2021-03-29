@@ -657,7 +657,7 @@ func (email *Email) attachB64(b64File string, name string) error {
 	}
 
 	// get the file mime type
-	mimeType := mime.TypeByExtension(name)
+	mimeType := mime.TypeByExtension(filepath.Ext(name))
 	if mimeType == "" {
 		mimeType = "application/octet-stream"
 	}
