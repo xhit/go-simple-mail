@@ -170,7 +170,7 @@ func TestWithTLS(t *testing.T) {
 	client.Port = 587
 	client.Username = "aaa@gmail.com"
 	client.Password = "asdfghh"
-	client.Encryption = mail.EncryptionTLS
+	client.Encryption = mail.EncryptionSTARTTLS
 	client.ConnectTimeout = 10 * time.Second
 	client.SendTimeout = 10 * time.Second
 
@@ -198,7 +198,7 @@ func TestWithSSL(t *testing.T) {
 	client.Port = 465
 	client.Username = "aaa@gmail.com"
 	client.Password = "asdfghh"
-	client.Encryption = mail.EncryptionSSL
+	client.Encryption = mail.EncryptionSSLTLS
 	client.ConnectTimeout = 10 * time.Second
 	client.SendTimeout = 10 * time.Second
 

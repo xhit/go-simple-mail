@@ -77,13 +77,17 @@ type Encryption int
 const (
 	// EncryptionNone uses no encryption when sending email
 	EncryptionNone Encryption = iota
-	// EncryptionSSL sets encryption type to SSL/TLS when sending email
+	// EncryptionSSL: DEPRECATED. Use EncryptionSSLTLS. Sets encryption type to SSL/TLS when sending email
 	EncryptionSSL
-	// EncryptionTLS sets encryption type to STARTTLS when sending email
+	// EncryptionTLS: DEPRECATED. Use EncryptionSTARTTLS. sets encryption type to STARTTLS when sending email
 	EncryptionTLS
+	// EncryptionSSLTLS sets encryption type to SSL/TLS when sending email
+	EncryptionSSLTLS
+	// EncryptionSTARTTLS sets encryption type to STARTTLS when sending email
+	EncryptionSTARTTLS
 )
 
-var encryptionTypes = [...]string{"None", "SSL/TLS", "STARTTLS"}
+var encryptionTypes = [...]string{"None", "SSL/TLS", "STARTTLS", "SSL/TLS", "STARTTLS"}
 
 func (encryption Encryption) String() string {
 	return encryptionTypes[encryption]
@@ -775,7 +779,7 @@ func dial(host string, port string, encryption Encryption, config *tls.Config) (
 
 	// do the actual dial
 	switch encryption {
-	case EncryptionSSL:
+	case EncryptionSSL, EncryptionSSLTLS:
 		conn, err = tls.Dial("tcp", address, config)
 	default:
 		conn, err = net.Dial("tcp", address)
@@ -814,12 +818,12 @@ func smtpConnect(host, port, helo string, a auth, encryption Encryption, config 
 		return nil, fmt.Errorf("Mail Error on Hello: %w", err)
 	}
 
-	// start TLS if necessary
-	if encryption == EncryptionTLS {
+	// STARTTLS if necessary
+	if encryption == EncryptionTLS || encryption == EncryptionSTARTTLS {
 		if ok, _ := c.extension("STARTTLS"); ok {
 			if err = c.startTLS(config); err != nil {
 				c.close()
-				return nil, fmt.Errorf("Mail Error on Start TLS: %w", err)
+				return nil, fmt.Errorf("Mail Error on STARTTLS: %w", err)
 			}
 		}
 	}

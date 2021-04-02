@@ -116,7 +116,7 @@ func main() {
 	server.Port = 587
 	server.Username = "test@example.com"
 	server.Password = "examplepass"
-	server.Encryption = mail.EncryptionTLS
+	server.Encryption = mail.EncryptionSTARTTLS
 
 	// Since v2.3.0 you can specified authentication type:
 	// - PLAIN (default)
