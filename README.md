@@ -58,7 +58,7 @@ Go Simple Mail supports:
 - Embedded images
 - HTML and text templates
 - Automatic encoding of special characters
-- SSL and TLS
+- SSL/TLS and STARTTLS
 - Unencrypted connection (not recommended)
 - Sending multiple emails with the same SMTP connection (Keep Alive or Persistent Connection)
 - Timeout for connect to a SMTP Server
