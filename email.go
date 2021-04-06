@@ -555,7 +555,7 @@ func (email *Email) AddAttachmentBase64(b64File string, name string) *Email {
 		return email
 	}
 
-	email.Error = email.attachB64(b64File, name)
+	email.Error = email.attachB64(b64File, false, name, "")
 
 	return email
 }
@@ -584,6 +584,24 @@ func (email *Email) AddInlineData(data []byte, filename, mimeType string) *Email
 	}
 
 	email.attachData(data, true, filename, mimeType)
+
+	return email
+}
+
+// AddInlineBase64 allows you to add an inline in-memory base64 encoded attachment to the email message.
+// You need provide a name for the file. If mimeType is an empty string, attachment mime type will be deduced
+// from the file name extension and defaults to application/octet-stream.
+func (email *Email) AddInlineBase64(b64File string, name string, mimeType string) *Email {
+	if email.Error != nil {
+		return email
+	}
+
+	if len(name) < 1 || len(b64File) < 1 {
+		email.Error = errors.New("Mail Error: Attach Base64 need have a base64 string and name")
+		return email
+	}
+
+	email.Error = email.attachB64(b64File, true, name, mimeType)
 
 	return email
 }
@@ -652,7 +670,7 @@ func (email *Email) attachData(data []byte, inline bool, filename, mimeType stri
 }
 
 // attachB64 does the low level attaching of the files but decoding base64 instead have a filepath
-func (email *Email) attachB64(b64File string, name string) error {
+func (email *Email) attachB64(b64File string, inline bool, name string, mimeType string) error {
 
 	// decode the string
 	dec, err := base64.StdEncoding.DecodeString(b64File)
@@ -660,17 +678,7 @@ func (email *Email) attachB64(b64File string, name string) error {
 		return errors.New("Mail Error: Failed to decode base64 attachment with following error: " + err.Error())
 	}
 
-	// get the file mime type
-	mimeType := mime.TypeByExtension(filepath.Ext(name))
-	if mimeType == "" {
-		mimeType = "application/octet-stream"
-	}
-
-	email.attachments = append(email.attachments, &file{
-		filename: name,
-		mimeType: mimeType,
-		data:     dec,
-	})
+	email.attachData(dec, inline, name, mimeType)
 
 	return nil
 }
