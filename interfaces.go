@@ -79,6 +79,11 @@ type EmailInterface interface {
 	// SendEnvelopeFrom sends the composed email with envelope
 	// sender. 'from' must be an email address.
 	SendEnvelopeFrom(from string, client SMTPClientInterface) error
+
+	//GetInlines returns all inlines of a message
+	GetInlines() []*file
+	//GetAttachments returns all attachments of a message
+	GetAttachments() []*file
 }
 
 // SMTPClientInterface ...

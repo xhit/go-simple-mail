@@ -137,8 +137,8 @@ const (
 )
 
 // NewMSG creates a new email. It uses UTF-8 by default. All charsets: http://webcheatsheet.com/HTML/character_sets_list.php
-func NewMSG() *Email {
-	email := &Email{
+func NewMSG() EmailInterface {
+	email := Email{
 		headers:  make(textproto.MIMEHeader),
 		Charset:  "UTF-8",
 		Encoding: EncodingQuotedPrintable,
@@ -169,6 +169,16 @@ func (server SMTPServer) GetEncryptionType() Encryption {
 // GetError returns the first email error encountered
 func (email Email) GetError() error {
 	return email.Error
+}
+
+//GetInlines returns all inlines of a message
+func (email Email) GetInlines() []*file {
+	return email.inlines
+}
+
+//GetAttachments returns all attachments of a message
+func (email Email) GetAttachments() []*file {
+	return email.attachments
 }
 
 // SetFrom sets the From address.
@@ -607,7 +617,7 @@ func (email Email) AddInlineBase64(b64File, name, mimeType string) EmailInterfac
 }
 
 // attach does the low level attaching of the files
-func (email Email) attach(f string, inline bool, name, mimeType string) error {
+func (email *Email) attach(f string, inline bool, name, mimeType string) error {
 	// Get the file data
 	data, err := ioutil.ReadFile(f)
 	if err != nil {
@@ -625,7 +635,7 @@ func (email Email) attach(f string, inline bool, name, mimeType string) error {
 }
 
 // attachData does the low level attaching of the in-memory data
-func (email Email) attachData(data []byte, inline bool, name, mimeType string) {
+func (email *Email) attachData(data []byte, inline bool, name, mimeType string) {
 	if mimeType == "" {
 		mimeType = mime.TypeByExtension(filepath.Ext(name))
 		if mimeType == "" {
@@ -649,7 +659,7 @@ func (email Email) attachData(data []byte, inline bool, name, mimeType string) {
 }
 
 // attachB64 does the low level attaching of the files but decoding base64 instead have a filepath
-func (email Email) attachB64(b64File string, inline bool, name, mimeType string) error {
+func (email *Email) attachB64(b64File string, inline bool, name, mimeType string) error {
 
 	// decode the string
 	dec, err := base64.StdEncoding.DecodeString(b64File)
