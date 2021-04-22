@@ -140,7 +140,7 @@ func TestSendMultipleEmails(t *testing.T) {
 	}
 }
 
-func sendEmail(htmlBody string, to string, smtpClient *mail.SMTPClient) error {
+func sendEmail(htmlBody string, to string, smtpClient mail.SMTPClientInterface) error {
 	//Create the email message
 	email := mail.NewMSG()
 

@@ -23,7 +23,7 @@ type message struct {
 	encoding encoding
 }
 
-func newMessage(email *Email) *message {
+func newMessage(email Email) *message {
 	return &message{
 		headers:  email.headers,
 		body:     new(bytes.Buffer),
