@@ -137,7 +137,7 @@ const (
 )
 
 // NewMSG creates a new email. It uses UTF-8 by default. All charsets: http://webcheatsheet.com/HTML/character_sets_list.php
-func NewMSG() EmailInterface {
+func NewMSG() *Email {
 	email := &Email{
 		headers:  make(textproto.MIMEHeader),
 		Charset:  "UTF-8",
