@@ -527,7 +527,7 @@ func (email *Email) AddAttachment(file string, name ...string) *Email {
 		return email
 	}
 
-	email.Error = email.attach(file, false, name...)
+	email.Error = email.attach(file, false, name[0], "")
 
 	return email
 }
@@ -545,7 +545,7 @@ func (email *Email) AddAttachmentData(data []byte, filename, mimeType string) *E
 
 // AddAttachmentBase64 allows you to add an attachment in base64 to the email message.
 // You need provide a name for the file.
-func (email *Email) AddAttachmentBase64(b64File string, name string) *Email {
+func (email *Email) AddAttachmentBase64(b64File, name string) *Email {
 	if email.Error != nil {
 		return email
 	}
@@ -572,7 +572,7 @@ func (email *Email) AddInline(file string, name ...string) *Email {
 		return email
 	}
 
-	email.Error = email.attach(file, true, name...)
+	email.Error = email.attach(file, true, name[0], "")
 
 	return email
 }
@@ -591,7 +591,7 @@ func (email *Email) AddInlineData(data []byte, filename, mimeType string) *Email
 // AddInlineBase64 allows you to add an inline in-memory base64 encoded attachment to the email message.
 // You need provide a name for the file. If mimeType is an empty string, attachment mime type will be deduced
 // from the file name extension and defaults to application/octet-stream.
-func (email *Email) AddInlineBase64(b64File string, name string, mimeType string) *Email {
+func (email *Email) AddInlineBase64(b64File, name, mimeType string) *Email {
 	if email.Error != nil {
 		return email
 	}
@@ -607,48 +607,27 @@ func (email *Email) AddInlineBase64(b64File string, name string, mimeType string
 }
 
 // attach does the low level attaching of the files
-func (email *Email) attach(f string, inline bool, name ...string) error {
+func (email *Email) attach(f string, inline bool, name, mimeType string) error {
 	// Get the file data
 	data, err := ioutil.ReadFile(f)
 	if err != nil {
 		return errors.New("Mail Error: Failed to add file with following error: " + err.Error())
 	}
 
-	// get the file mime type
-	mimeType := mime.TypeByExtension(filepath.Ext(f))
-	if mimeType == "" {
-		mimeType = "application/octet-stream"
+	// if no alternative name was provided, get the filename
+	if len(name) == 0 {
+		_, name = filepath.Split(f)
 	}
 
-	// get the filename
-	_, filename := filepath.Split(f)
-
-	// if an alternative filename was provided, use that instead
-	if len(name) == 1 {
-		filename = name[0]
-	}
-
-	if inline {
-		email.inlines = append(email.inlines, &file{
-			filename: filename,
-			mimeType: mimeType,
-			data:     data,
-		})
-	} else {
-		email.attachments = append(email.attachments, &file{
-			filename: filename,
-			mimeType: mimeType,
-			data:     data,
-		})
-	}
+	email.attachData(data, inline, name, mimeType)
 
 	return nil
 }
 
 // attachData does the low level attaching of the in-memory data
-func (email *Email) attachData(data []byte, inline bool, filename, mimeType string) {
+func (email *Email) attachData(data []byte, inline bool, name, mimeType string) {
 	if mimeType == "" {
-		mimeType = mime.TypeByExtension(filepath.Ext(filename))
+		mimeType = mime.TypeByExtension(filepath.Ext(name))
 		if mimeType == "" {
 			mimeType = "application/octet-stream"
 		}
@@ -656,13 +635,13 @@ func (email *Email) attachData(data []byte, inline bool, filename, mimeType stri
 
 	if inline {
 		email.inlines = append(email.inlines, &file{
-			filename: filename,
+			filename: name,
 			mimeType: mimeType,
 			data:     data,
 		})
 	} else {
 		email.attachments = append(email.attachments, &file{
-			filename: filename,
+			filename: name,
 			mimeType: mimeType,
 			data:     data,
 		})
@@ -670,7 +649,7 @@ func (email *Email) attachData(data []byte, inline bool, filename, mimeType stri
 }
 
 // attachB64 does the low level attaching of the files but decoding base64 instead have a filepath
-func (email *Email) attachB64(b64File string, inline bool, name string, mimeType string) error {
+func (email *Email) attachB64(b64File string, inline bool, name, mimeType string) error {
 
 	// decode the string
 	dec, err := base64.StdEncoding.DecodeString(b64File)
