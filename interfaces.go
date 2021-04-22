@@ -58,7 +58,7 @@ type EmailInterface interface {
 	AddAttachmentData(data []byte, filename, mimeType string) EmailInterface
 	// AddAttachmentBase64 allows you to add an attachment in base64 to the email message.
 	// You need provide a name for the file.
-	AddAttachmentBase64(b64File string, name string) EmailInterface
+	AddAttachmentBase64(b64File, name string) EmailInterface
 	// AddInline allows you to add an inline attachment to the email message.
 	// You can optionally provide a different name for the file.
 	AddInline(file string, name ...string) EmailInterface
@@ -67,7 +67,7 @@ type EmailInterface interface {
 	// AddInlineBase64 allows you to add an inline in-memory base64 encoded attachment to the email message.
 	// You need provide a name for the file. If mimeType is an empty string, attachment mime type will be deduced
 	// from the file name extension and defaults to application/octet-stream.
-	AddInlineBase64(b64File string, name string, mimeType string) EmailInterface
+	AddInlineBase64(b64File, name, mimeType string) EmailInterface
 	// GetFrom returns the sender of the email, if any
 	GetFrom() string
 	// GetRecipients returns a slice of recipients emails
