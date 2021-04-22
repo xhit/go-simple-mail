@@ -25,8 +25,8 @@ type Email struct {
 	recipients  []string
 	headers     textproto.MIMEHeader
 	parts       []part
-	attachments []*file
-	inlines     []*file
+	attachments []*File
+	inlines     []*File
 	Charset     string
 	Encoding    encoding
 	Error       error
@@ -64,8 +64,8 @@ type part struct {
 	body        *bytes.Buffer
 }
 
-// file represents the files that can be added to the email message.
-type file struct {
+// File represents the files that can be added to the email message.
+type File struct {
 	filename string
 	mimeType string
 	data     []byte
@@ -172,12 +172,12 @@ func (email Email) GetError() error {
 }
 
 //GetInlines returns all inlines of a message
-func (email Email) GetInlines() []*file {
+func (email Email) GetInlines() []*File {
 	return email.inlines
 }
 
 //GetAttachments returns all attachments of a message
-func (email Email) GetAttachments() []*file {
+func (email Email) GetAttachments() []*File {
 	return email.attachments
 }
 
@@ -526,14 +526,14 @@ func (email Email) AddAlternative(contentType contentType, body string) EmailInt
 }
 
 // AddAttachment allows you to add an attachment to the email message.
-// You can optionally provide a different name for the file.
+// You can optionally provide a different name for the File.
 func (email Email) AddAttachment(file string, name ...string) EmailInterface {
 	if email.Error != nil {
 		return email
 	}
 
 	if len(name) > 1 {
-		email.Error = errors.New("Mail Error: Attach can only have a file and an optional name")
+		email.Error = errors.New("Mail Error: Attach can only have a File and an optional name")
 		return email
 	}
 
@@ -554,7 +554,7 @@ func (email Email) AddAttachmentData(data []byte, filename, mimeType string) Ema
 }
 
 // AddAttachmentBase64 allows you to add an attachment in base64 to the email message.
-// You need provide a name for the file.
+// You need provide a name for the File.
 func (email Email) AddAttachmentBase64(b64File, name string) EmailInterface {
 	if email.Error != nil {
 		return email
@@ -571,14 +571,14 @@ func (email Email) AddAttachmentBase64(b64File, name string) EmailInterface {
 }
 
 // AddInline allows you to add an inline attachment to the email message.
-// You can optionally provide a different name for the file.
+// You can optionally provide a different name for the File.
 func (email Email) AddInline(file string, name ...string) EmailInterface {
 	if email.Error != nil {
 		return email
 	}
 
 	if len(name) > 1 {
-		email.Error = errors.New("Mail Error: Inline can only have a file and an optional name")
+		email.Error = errors.New("Mail Error: Inline can only have a File and an optional name")
 		return email
 	}
 
@@ -599,8 +599,8 @@ func (email Email) AddInlineData(data []byte, filename, mimeType string) EmailIn
 }
 
 // AddInlineBase64 allows you to add an inline in-memory base64 encoded attachment to the email message.
-// You need provide a name for the file. If mimeType is an empty string, attachment mime type will be deduced
-// from the file name extension and defaults to application/octet-stream.
+// You need provide a name for the File. If mimeType is an empty string, attachment mime type will be deduced
+// from the File name extension and defaults to application/octet-stream.
 func (email Email) AddInlineBase64(b64File, name, mimeType string) EmailInterface {
 	if email.Error != nil {
 		return email
@@ -618,10 +618,10 @@ func (email Email) AddInlineBase64(b64File, name, mimeType string) EmailInterfac
 
 // attach does the low level attaching of the files
 func (email *Email) attach(f string, inline bool, name, mimeType string) error {
-	// Get the file data
+	// Get the File data
 	data, err := ioutil.ReadFile(f)
 	if err != nil {
-		return errors.New("Mail Error: Failed to add file with following error: " + err.Error())
+		return errors.New("Mail Error: Failed to add File with following error: " + err.Error())
 	}
 
 	// if no alternative name was provided, get the filename
@@ -644,13 +644,13 @@ func (email *Email) attachData(data []byte, inline bool, name, mimeType string) 
 	}
 
 	if inline {
-		email.inlines = append(email.inlines, &file{
+		email.inlines = append(email.inlines, &File{
 			filename: name,
 			mimeType: mimeType,
 			data:     data,
 		})
 	} else {
-		email.attachments = append(email.attachments, &file{
+		email.attachments = append(email.attachments, &File{
 			filename: name,
 			mimeType: mimeType,
 			data:     data,

@@ -230,7 +230,7 @@ func escapeQuotes(s string) string {
 	return quoteEscaper.Replace(s)
 }
 
-func (msg *message) addFiles(files []*file, inline bool) {
+func (msg *message) addFiles(files []*File, inline bool) {
 	encoding := EncodingBase64
 	for _, file := range files {
 		header := make(textproto.MIMEHeader)

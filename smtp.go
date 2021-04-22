@@ -11,7 +11,7 @@
 //	SIZE      RFC 1870
 // Additional extensions may be handled by clients using smtp.go in golang source code or pull request Go Simple Mail
 
-// smtp.go file is a modification of smtp golang package what is frozen and is not accepting new features.
+// smtp.go File is a modification of smtp golang package what is frozen and is not accepting new features.
 
 package mail
 
