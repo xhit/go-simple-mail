@@ -77,13 +77,13 @@ func TestSendMail(t *testing.T) {
 	email.AddBcc("bcccc@example2.com")
 
 	//Add inline too!
-	email.AddInline("C:/Users/sdelacruz/Pictures/Gopher.png")
+	email.AddInline("C:/Users/sdelacruz/Pictures/Gopher.png", "", "")
 
 	//Attach a file with path
-	email.AddAttachment("C:/Users/sdelacruz/Pictures/Gopher.png")
+	email.AddAttachment("C:/Users/sdelacruz/Pictures/Gopher.png", "", "")
 
 	//Attach the file with a base64
-	email.AddAttachmentBase64("base64string", "filename")
+	email.AddAttachmentBase64("base64string", "filename", "")
 
 	//Set a different date in header email
 	email.SetDate("2015-04-28 10:32:00 CDT")

@@ -516,74 +516,66 @@ func (email *Email) AddAlternative(contentType contentType, body string) *Email 
 }
 
 // AddAttachment allows you to add an attachment to the email message.
-// You can optionally provide a different name for the file.
-func (email *Email) AddAttachment(file string, name ...string) *Email {
+// You can optionally provide a different name and mimeType for the file. If empty, we will use the actual filename
+// and try to set the mimeType according to the filename extension.
+func (email *Email) AddAttachment(file, name, mimeType string) *Email {
 	if email.Error != nil {
 		return email
 	}
 
-	if len(name) > 1 {
-		email.Error = errors.New("Mail Error: Attach can only have a file and an optional name")
-		return email
-	}
-
-	email.Error = email.attach(file, false, name[0], "")
+	email.Error = email.attach(file, false, name, mimeType)
 
 	return email
 }
 
 // AddAttachmentData allows you to add an in-memory attachment to the email message.
-func (email *Email) AddAttachmentData(data []byte, filename, mimeType string) *Email {
+func (email *Email) AddAttachmentData(data []byte, name, mimeType string) *Email {
 	if email.Error != nil {
 		return email
 	}
 
-	email.attachData(data, false, filename, mimeType)
+	email.attachData(data, false, name, mimeType)
 
 	return email
 }
 
 // AddAttachmentBase64 allows you to add an attachment in base64 to the email message.
 // You need provide a name for the file.
-func (email *Email) AddAttachmentBase64(b64File, name string) *Email {
+func (email *Email) AddAttachmentBase64(b64Data, name, mimeType string) *Email {
 	if email.Error != nil {
 		return email
 	}
 
-	if len(name) < 1 || len(b64File) < 1 {
+	if len(name) < 1 || len(b64Data) < 1 {
 		email.Error = errors.New("Mail Error: Attach Base64 need have a base64 string and name")
 		return email
 	}
 
-	email.Error = email.attachB64(b64File, false, name, "")
+	email.Error = email.attachB64(b64Data, false, name, mimeType)
 
 	return email
 }
 
 // AddInline allows you to add an inline attachment to the email message.
-// You can optionally provide a different name for the file.
-func (email *Email) AddInline(file string, name ...string) *Email {
+// You can optionally provide a different name and mimeType for the file. If empty, we will use the actual filename
+// and try to set the mimeType according to the filename extension.
+func (email *Email) AddInline(file, name, mimeType string) *Email {
 	if email.Error != nil {
 		return email
 	}
 
-	if len(name) > 1 {
-		email.Error = errors.New("Mail Error: Inline can only have a file and an optional name")
-		return email
-	}
-
-	email.Error = email.attach(file, true, name[0], "")
+	email.Error = email.attach(file, true, name, mimeType)
 
 	return email
 }
 
 // AddInlineData allows you to add an inline in-memory attachment to the email message.
-func (email *Email) AddInlineData(data []byte, filename, mimeType string) *Email {
+func (email *Email) AddInlineData(data []byte, name, mimeType string) *Email {
 	if email.Error != nil {
 		return email
 	}
 
-	email.attachData(data, true, filename, mimeType)
+	email.attachData(data, true, name, mimeType)
 
 	return email
 }
@@ -591,17 +583,17 @@ func (email *Email) AddInlineData(data []byte, filename, mimeType string) *Email
 // AddInlineBase64 allows you to add an inline in-memory base64 encoded attachment to the email message.
 // You need provide a name for the file. If mimeType is an empty string, attachment mime type will be deduced
 // from the file name extension and defaults to application/octet-stream.
-func (email *Email) AddInlineBase64(b64File, name, mimeType string) *Email {
+func (email *Email) AddInlineBase64(b64Data, name, mimeType string) *Email {
 	if email.Error != nil {
 		return email
 	}
 
-	if len(name) < 1 || len(b64File) < 1 {
+	if len(name) < 1 || len(b64Data) < 1 {
 		email.Error = errors.New("Mail Error: Attach Base64 need have a base64 string and name")
 		return email
 	}
 
-	email.Error = email.attachB64(b64File, true, name, mimeType)
+	email.Error = email.attachB64(b64Data, true, name, mimeType)
 
 	return email
 }
@@ -649,10 +641,10 @@ func (email *Email) attachData(data []byte, inline bool, name, mimeType string) 
 }
 
 // attachB64 does the low level attaching of the files but decoding base64 instead have a filepath
-func (email *Email) attachB64(b64File string, inline bool, name, mimeType string) error {
+func (email *Email) attachB64(b64Data string, inline bool, name, mimeType string) error {
 
 	// decode the string
-	dec, err := base64.StdEncoding.DecodeString(b64File)
+	dec, err := base64.StdEncoding.DecodeString(b64Data)
 	if err != nil {
 		return errors.New("Mail Error: Failed to decode base64 attachment with following error: " + err.Error())
 	}
