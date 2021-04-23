@@ -19,7 +19,7 @@ func checkByteSlice(t *testing.T, got, want []byte) {
 
 func TestAttachments(t *testing.T) {
 	want := []byte("foo")
-	t.Run("Inline File", func(t *testing.T) {
+	t.Run("Inline file", func(t *testing.T) {
 		msg := NewMSG()
 		msg = msg.AddInline("testdata/foo.txt", "foo")
 		checkError(t, msg.GetError())
