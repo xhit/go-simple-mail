@@ -25,8 +25,8 @@ type Email struct {
 	recipients  []string
 	headers     textproto.MIMEHeader
 	parts       []part
-	attachments []*file
-	inlines     []*file
+	attachments []*File
+	inlines     []*File
 	Charset     string
 	Encoding    encoding
 	Error       error
@@ -64,8 +64,8 @@ type part struct {
 	body        *bytes.Buffer
 }
 
-// file represents the files that can be added to the email message.
-type file struct {
+// File represents the files that can be added to the email message.
+type File struct {
 	filename string
 	mimeType string
 	data     []byte
@@ -137,8 +137,8 @@ const (
 )
 
 // NewMSG creates a new email. It uses UTF-8 by default. All charsets: http://webcheatsheet.com/HTML/character_sets_list.php
-func NewMSG() *Email {
-	email := &Email{
+func NewMSG() EmailInterface {
+	email := Email{
 		headers:  make(textproto.MIMEHeader),
 		Charset:  "UTF-8",
 		Encoding: EncodingQuotedPrintable,
@@ -150,8 +150,8 @@ func NewMSG() *Email {
 }
 
 //NewSMTPClient returns the client for send email
-func NewSMTPClient() *SMTPServer {
-	server := &SMTPServer{
+func NewSMTPClient() SMTPServer {
+	server := SMTPServer{
 		Authentication: AuthPlain,
 		Encryption:     EncryptionNone,
 		ConnectTimeout: 10 * time.Second,
@@ -162,17 +162,27 @@ func NewSMTPClient() *SMTPServer {
 }
 
 // GetEncryptionType returns the encryption type used to connect to SMTP server
-func (server *SMTPServer) GetEncryptionType() Encryption {
+func (server SMTPServer) GetEncryptionType() Encryption {
 	return server.Encryption
 }
 
 // GetError returns the first email error encountered
-func (email *Email) GetError() error {
+func (email Email) GetError() error {
 	return email.Error
 }
 
+//GetInlines returns all inlines of a message
+func (email Email) GetInlines() []*File {
+	return email.inlines
+}
+
+//GetAttachments returns all attachments of a message
+func (email Email) GetAttachments() []*File {
+	return email.attachments
+}
+
 // SetFrom sets the From address.
-func (email *Email) SetFrom(address string) *Email {
+func (email Email) SetFrom(address string) EmailInterface {
 	if email.Error != nil {
 		return email
 	}
@@ -183,7 +193,7 @@ func (email *Email) SetFrom(address string) *Email {
 }
 
 // SetSender sets the Sender address.
-func (email *Email) SetSender(address string) *Email {
+func (email Email) SetSender(address string) EmailInterface {
 	if email.Error != nil {
 		return email
 	}
@@ -194,7 +204,7 @@ func (email *Email) SetSender(address string) *Email {
 }
 
 // SetReplyTo sets the Reply-To address.
-func (email *Email) SetReplyTo(address string) *Email {
+func (email Email) SetReplyTo(address string) EmailInterface {
 	if email.Error != nil {
 		return email
 	}
@@ -206,7 +216,7 @@ func (email *Email) SetReplyTo(address string) *Email {
 
 // SetReturnPath sets the Return-Path address. This is most often used
 // to send bounced emails to a different email address.
-func (email *Email) SetReturnPath(address string) *Email {
+func (email Email) SetReturnPath(address string) EmailInterface {
 	if email.Error != nil {
 		return email
 	}
@@ -218,7 +228,7 @@ func (email *Email) SetReturnPath(address string) *Email {
 
 // AddTo adds a To address. You can provide multiple
 // addresses at the same time.
-func (email *Email) AddTo(addresses ...string) *Email {
+func (email Email) AddTo(addresses ...string) EmailInterface {
 	if email.Error != nil {
 		return email
 	}
@@ -230,7 +240,7 @@ func (email *Email) AddTo(addresses ...string) *Email {
 
 // AddCc adds a Cc address. You can provide multiple
 // addresses at the same time.
-func (email *Email) AddCc(addresses ...string) *Email {
+func (email Email) AddCc(addresses ...string) EmailInterface {
 	if email.Error != nil {
 		return email
 	}
@@ -242,7 +252,7 @@ func (email *Email) AddCc(addresses ...string) *Email {
 
 // AddBcc adds a Bcc address. You can provide multiple
 // addresses at the same time.
-func (email *Email) AddBcc(addresses ...string) *Email {
+func (email Email) AddBcc(addresses ...string) EmailInterface {
 	if email.Error != nil {
 		return email
 	}
@@ -253,7 +263,7 @@ func (email *Email) AddBcc(addresses ...string) *Email {
 }
 
 // AddAddresses allows you to add addresses to the specified address header.
-func (email *Email) AddAddresses(header string, addresses ...string) *Email {
+func (email Email) AddAddresses(header string, addresses ...string) EmailInterface {
 	if email.Error != nil {
 		return email
 	}
@@ -366,7 +376,7 @@ const (
 
 // SetPriority sets the email message priority. Use with
 // either "High" or "Low".
-func (email *Email) SetPriority(priority priority) *Email {
+func (email Email) SetPriority(priority priority) EmailInterface {
 	if email.Error != nil {
 		return email
 	}
@@ -394,7 +404,7 @@ func (email *Email) SetPriority(priority priority) *Email {
 // The format of the string should be YYYY-MM-DD HH:MM:SS Time Zone.
 //
 // Example: SetDate("2015-04-28 10:32:00 CDT")
-func (email *Email) SetDate(dateTime string) *Email {
+func (email Email) SetDate(dateTime string) EmailInterface {
 	if email.Error != nil {
 		return email
 	}
@@ -414,7 +424,7 @@ func (email *Email) SetDate(dateTime string) *Email {
 }
 
 // SetSubject sets the subject of the email message.
-func (email *Email) SetSubject(subject string) *Email {
+func (email Email) SetSubject(subject string) EmailInterface {
 	if email.Error != nil {
 		return email
 	}
@@ -425,7 +435,7 @@ func (email *Email) SetSubject(subject string) *Email {
 }
 
 // SetBody sets the body of the email message.
-func (email *Email) SetBody(contentType contentType, body string) *Email {
+func (email Email) SetBody(contentType contentType, body string) EmailInterface {
 	if email.Error != nil {
 		return email
 	}
@@ -441,7 +451,7 @@ func (email *Email) SetBody(contentType contentType, body string) *Email {
 }
 
 // AddHeader adds the given "header" with the passed "value".
-func (email *Email) AddHeader(header string, values ...string) *Email {
+func (email Email) AddHeader(header string, values ...string) EmailInterface {
 	if email.Error != nil {
 		return email
 	}
@@ -484,7 +494,7 @@ func (email *Email) AddHeader(header string, values ...string) *Email {
 }
 
 // AddHeaders is used to add multiple headers at once
-func (email *Email) AddHeaders(headers textproto.MIMEHeader) *Email {
+func (email Email) AddHeaders(headers textproto.MIMEHeader) EmailInterface {
 	if email.Error != nil {
 		return email
 	}
@@ -500,7 +510,7 @@ func (email *Email) AddHeaders(headers textproto.MIMEHeader) *Email {
 // of the email message. This is most commonly used to add an
 // html version in addition to a plain text version that was
 // already added with SetBody.
-func (email *Email) AddAlternative(contentType contentType, body string) *Email {
+func (email Email) AddAlternative(contentType contentType, body string) EmailInterface {
 	if email.Error != nil {
 		return email
 	}
@@ -517,7 +527,7 @@ func (email *Email) AddAlternative(contentType contentType, body string) *Email 
 
 // AddAttachment allows you to add an attachment to the email message.
 // You can optionally provide a different name for the file.
-func (email *Email) AddAttachment(file string, name ...string) *Email {
+func (email Email) AddAttachment(file string, name ...string) EmailInterface {
 	if email.Error != nil {
 		return email
 	}
@@ -533,7 +543,7 @@ func (email *Email) AddAttachment(file string, name ...string) *Email {
 }
 
 // AddAttachmentData allows you to add an in-memory attachment to the email message.
-func (email *Email) AddAttachmentData(data []byte, filename, mimeType string) *Email {
+func (email Email) AddAttachmentData(data []byte, filename, mimeType string) EmailInterface {
 	if email.Error != nil {
 		return email
 	}
@@ -545,7 +555,7 @@ func (email *Email) AddAttachmentData(data []byte, filename, mimeType string) *E
 
 // AddAttachmentBase64 allows you to add an attachment in base64 to the email message.
 // You need provide a name for the file.
-func (email *Email) AddAttachmentBase64(b64File, name string) *Email {
+func (email Email) AddAttachmentBase64(b64File, name string) EmailInterface {
 	if email.Error != nil {
 		return email
 	}
@@ -562,7 +572,7 @@ func (email *Email) AddAttachmentBase64(b64File, name string) *Email {
 
 // AddInline allows you to add an inline attachment to the email message.
 // You can optionally provide a different name for the file.
-func (email *Email) AddInline(file string, name ...string) *Email {
+func (email Email) AddInline(file string, name ...string) EmailInterface {
 	if email.Error != nil {
 		return email
 	}
@@ -578,7 +588,7 @@ func (email *Email) AddInline(file string, name ...string) *Email {
 }
 
 // AddInlineData allows you to add an inline in-memory attachment to the email message.
-func (email *Email) AddInlineData(data []byte, filename, mimeType string) *Email {
+func (email Email) AddInlineData(data []byte, filename, mimeType string) EmailInterface {
 	if email.Error != nil {
 		return email
 	}
@@ -591,7 +601,7 @@ func (email *Email) AddInlineData(data []byte, filename, mimeType string) *Email
 // AddInlineBase64 allows you to add an inline in-memory base64 encoded attachment to the email message.
 // You need provide a name for the file. If mimeType is an empty string, attachment mime type will be deduced
 // from the file name extension and defaults to application/octet-stream.
-func (email *Email) AddInlineBase64(b64File, name, mimeType string) *Email {
+func (email Email) AddInlineBase64(b64File, name, mimeType string) EmailInterface {
 	if email.Error != nil {
 		return email
 	}
@@ -634,13 +644,13 @@ func (email *Email) attachData(data []byte, inline bool, name, mimeType string) 
 	}
 
 	if inline {
-		email.inlines = append(email.inlines, &file{
+		email.inlines = append(email.inlines, &File{
 			filename: name,
 			mimeType: mimeType,
 			data:     data,
 		})
 	} else {
-		email.attachments = append(email.attachments, &file{
+		email.attachments = append(email.attachments, &File{
 			filename: name,
 			mimeType: mimeType,
 			data:     data,
@@ -663,7 +673,7 @@ func (email *Email) attachB64(b64File string, inline bool, name, mimeType string
 }
 
 // GetFrom returns the sender of the email, if any
-func (email *Email) GetFrom() string {
+func (email Email) GetFrom() string {
 	from := email.returnPath
 	if from == "" {
 		from = email.sender
@@ -679,24 +689,24 @@ func (email *Email) GetFrom() string {
 }
 
 // GetRecipients returns a slice of recipients emails
-func (email *Email) GetRecipients() []string {
+func (email Email) GetRecipients() []string {
 	return email.recipients
 }
 
-func (email *Email) hasMixedPart() bool {
+func (email Email) hasMixedPart() bool {
 	return (len(email.parts) > 0 && len(email.attachments) > 0) || len(email.attachments) > 1
 }
 
-func (email *Email) hasRelatedPart() bool {
+func (email Email) hasRelatedPart() bool {
 	return (len(email.parts) > 0 && len(email.inlines) > 0) || len(email.inlines) > 1
 }
 
-func (email *Email) hasAlternativePart() bool {
+func (email Email) hasAlternativePart() bool {
 	return len(email.parts) > 1
 }
 
 // GetMessage builds and returns the email message (RFC822 formatted message)
-func (email *Email) GetMessage() string {
+func (email Email) GetMessage() string {
 	msg := newMessage(email)
 
 	if email.hasMixedPart() {
@@ -733,13 +743,13 @@ func (email *Email) GetMessage() string {
 }
 
 // Send sends the composed email
-func (email *Email) Send(client *SMTPClient) error {
+func (email Email) Send(client SMTPClientInterface) error {
 	return email.SendEnvelopeFrom(email.from, client)
 }
 
 // SendEnvelopeFrom sends the composed email with envelope
 // sender. 'from' must be an email address.
-func (email *Email) SendEnvelopeFrom(from string, client *SMTPClient) error {
+func (email Email) SendEnvelopeFrom(from string, client SMTPClientInterface) error {
 	if email.Error != nil {
 		return email.Error
 	}
@@ -829,7 +839,7 @@ func smtpConnect(host, port, helo string, a auth, encryption Encryption, config 
 }
 
 //Connect returns the smtp client
-func (server *SMTPServer) Connect() (*SMTPClient, error) {
+func (server SMTPServer) Connect() (SMTPClientInterface, error) {
 
 	var a auth
 
@@ -890,28 +900,28 @@ func (server *SMTPServer) Connect() (*SMTPClient, error) {
 }
 
 // Reset send RSET command to smtp client
-func (smtpClient *SMTPClient) Reset() error {
+func (smtpClient SMTPClient) Reset() error {
 	return smtpClient.Client.reset()
 }
 
 // Noop send NOOP command to smtp client
-func (smtpClient *SMTPClient) Noop() error {
+func (smtpClient SMTPClient) Noop() error {
 	return smtpClient.Client.noop()
 }
 
 // Quit send QUIT command to smtp client
-func (smtpClient *SMTPClient) Quit() error {
+func (smtpClient SMTPClient) Quit() error {
 	return smtpClient.Client.quit()
 }
 
 // Close closes the connection
-func (smtpClient *SMTPClient) Close() error {
+func (smtpClient SMTPClient) Close() error {
 	return smtpClient.Client.close()
 }
 
 // SendMessage sends a message (a RFC822 formatted message)
 // 'from' must be an email address, recipients must be a slice of email address
-func SendMessage(from string, recipients []string, msg string, client *SMTPClient) error {
+func SendMessage(from string, recipients []string, msg string, client SMTPClient) error {
 	if from == "" {
 		return errors.New("Mail Error: No From email specifier")
 	}
@@ -923,38 +933,40 @@ func SendMessage(from string, recipients []string, msg string, client *SMTPClien
 }
 
 // send does the low level sending of the email
-func send(from string, to []string, msg string, client *SMTPClient) error {
+func send(from string, to []string, msg string, clientInterface SMTPClientInterface) error {
 	//Check if client struct is not nil
-	if client != nil {
+	if clientInterface != nil {
+		client, ok := clientInterface.(SMTPClient)
+		if ok {
 
-		//Check if client is not nil
-		if client.Client != nil {
-			var smtpSendChannel chan error
+			//Check if client is not nil
+			if client.Client != nil {
+				var smtpSendChannel chan error
 
-			// if there is a SendTimeout, setup the channel and do the send under a goroutine
-			if client.SendTimeout != 0 {
-				smtpSendChannel = make(chan error, 1)
+				// if there is a SendTimeout, setup the channel and do the send under a goroutine
+				if client.SendTimeout != 0 {
+					smtpSendChannel = make(chan error, 1)
 
-				go func(from string, to []string, msg string, c *smtpClient) {
-					smtpSendChannel <- sendMailProcess(from, to, msg, c)
-				}(from, to, msg, client.Client)
+					go func(from string, to []string, msg string, c *smtpClient) {
+						smtpSendChannel <- sendMailProcess(from, to, msg, c)
+					}(from, to, msg, client.Client)
+				}
+
+				if client.SendTimeout == 0 {
+					// no SendTimeout, just fire the sendMailProcess
+					return sendMailProcess(from, to, msg, client.Client)
+				}
+
+				// get the send result or timeout result, which ever happens first
+				select {
+				case sendError := <-smtpSendChannel:
+					checkKeepAlive(client)
+					return sendError
+				case <-time.After(client.SendTimeout):
+					checkKeepAlive(client)
+					return errors.New("Mail Error: SMTP Send timed out")
+				}
 			}
-
-			if client.SendTimeout == 0 {
-				// no SendTimeout, just fire the sendMailProcess
-				return sendMailProcess(from, to, msg, client.Client)
-			}
-
-			// get the send result or timeout result, which ever happens first
-			select {
-			case sendError := <-smtpSendChannel:
-				checkKeepAlive(client)
-				return sendError
-			case <-time.After(client.SendTimeout):
-				checkKeepAlive(client)
-				return errors.New("Mail Error: SMTP Send timed out")
-			}
-
 		}
 	}
 
@@ -1002,7 +1014,7 @@ func sendMailProcess(from string, to []string, msg string, c *smtpClient) error 
 }
 
 //check if keepAlive for close or reset
-func checkKeepAlive(client *SMTPClient) {
+func checkKeepAlive(client SMTPClient) {
 	if client.KeepAlive {
 		client.Client.reset()
 	} else {
