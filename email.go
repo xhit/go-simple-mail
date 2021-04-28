@@ -3,15 +3,11 @@ package mail
 import (
 	"bytes"
 	"crypto/tls"
-	"encoding/base64"
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"mime"
 	"net"
 	"net/mail"
 	"net/textproto"
-	"path/filepath"
 	"strconv"
 	"time"
 )
@@ -62,16 +58,6 @@ type SMTPClient struct {
 type part struct {
 	contentType string
 	body        *bytes.Buffer
-}
-
-// File represents the file that can be added to the email message.
-type File struct {
-	Filepath string
-	Name     string
-	MimeType string
-	B64File  string
-	Data     []byte
-	Inline   bool
 }
 
 // Encryption type to enum encryption types (None, SSL/TLS, STARTTLS)
@@ -516,126 +502,6 @@ func (email *Email) AddAlternative(contentType contentType, body string) *Email 
 	)
 
 	return email
-}
-
-type attachType int
-
-const (
-	attachData attachType = iota
-	attachB64
-	attachFile
-)
-
-func getAttachmentType(file *File) (attachType, error) {
-	// 1- data
-	// 2- base64
-	// 3- file
-
-	// first check if Data
-	if len(file.Data) > 0 {
-		// data requires a name
-		if len(file.Name) == 0 {
-			return 0, errors.New("Mail Error: Attach from bytes requires a name")
-		}
-		return attachData, nil
-	}
-
-	// check if base64
-	if len(file.B64File) > 0 {
-		// b64file requires a name
-		if len(file.Name) == 0 {
-			return 0, errors.New("Mail Error: Attach from base64 string requires a name")
-		}
-		return attachB64, nil
-	}
-
-	// check if file
-	if len(file.Filepath) > 0 {
-		return attachFile, nil
-	}
-
-	return 0, errors.New("Mail Error: Empty attachment")
-}
-
-// Attach allows you to add an attachment to the email message.
-// You can optionally provide a different name for the file.
-func (email *Email) Attach(file File) *Email {
-	if email.Error != nil {
-		return email
-	}
-
-	var name = file.Name
-
-	// if no alternative name was provided, get the filename
-	if len(name) == 0 {
-		_, name = filepath.Split(file.Filepath)
-	}
-
-	attachTy, err := getAttachmentType(&file)
-	if err != nil {
-		email.Error = errors.New("Mail Error: Failed to add attachment with following error: " + err.Error())
-		return email
-	}
-
-	switch attachTy {
-	case attachData:
-		email.attachData(file.Data, name, file.MimeType, file.Inline)
-	case attachB64:
-		email.Error = email.attachB64(file.B64File, name, file.MimeType, file.Inline)
-	case attachFile:
-		email.Error = email.attachFile(file.Filepath, name, file.MimeType, file.Inline)
-	}
-
-	return nil
-}
-
-// attachB64 does the low level attaching of the files but decoding base64
-func (email *Email) attachB64(b64File, name, mimeType string, inline bool) error {
-
-	// decode the string
-	dec, err := base64.StdEncoding.DecodeString(b64File)
-	if err != nil {
-		return errors.New("Mail Error: Failed to decode base64 attachment with following error: " + err.Error())
-	}
-
-	email.attachData(dec, name, mimeType, inline)
-
-	return nil
-}
-
-func (email *Email) attachFile(filepath, name, mimeType string, inline bool) error {
-	data, err := ioutil.ReadFile(filepath)
-	if err != nil {
-		return errors.New("Mail Error: Failed to add file with following error: " + err.Error())
-	}
-
-	email.attachData(data, name, mimeType, inline)
-
-	return nil
-}
-
-// attachData does the low level attaching of the in-memory data
-func (email *Email) attachData(data []byte, name, mimeType string, inline bool) {
-	if mimeType == "" {
-		mimeType = mime.TypeByExtension(filepath.Ext(name))
-		if mimeType == "" {
-			mimeType = "application/octet-stream"
-		}
-	}
-
-	if inline {
-		email.inlines = append(email.inlines, &File{
-			Name:     name,
-			MimeType: mimeType,
-			Data:     data,
-		})
-	} else {
-		email.attachments = append(email.attachments, &File{
-			Name:     name,
-			MimeType: mimeType,
-			Data:     data,
-		})
-	}
 }
 
 // GetFrom returns the sender of the email, if any
