@@ -87,7 +87,7 @@ func getAttachmentType(file *File) (attachType, error) {
 	if len(file.Data) > 0 {
 		// data requires a name
 		if len(file.Name) == 0 {
-			return 0, errors.New("Mail Error: Attach from bytes requires a name")
+			return 0, errors.New("attach from bytes requires a name")
 		}
 		return attachData, nil
 	}
@@ -96,7 +96,7 @@ func getAttachmentType(file *File) (attachType, error) {
 	if len(file.B64Data) > 0 {
 		// b64file requires a name
 		if len(file.Name) == 0 {
-			return 0, errors.New("Mail Error: Attach from base64 string requires a name")
+			return 0, errors.New("attach from base64 string requires a name")
 		}
 		return attachB64, nil
 	}
@@ -106,7 +106,7 @@ func getAttachmentType(file *File) (attachType, error) {
 		return attachFile, nil
 	}
 
-	return 0, errors.New("Mail Error: Empty attachment")
+	return 0, errors.New("empty attachment")
 }
 
 // attachB64 does the low level attaching of the files but decoding base64
