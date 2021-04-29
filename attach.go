@@ -14,11 +14,11 @@ import (
 type File struct {
 	// FilePath is the path of the file to attach.
 	FilePath string
-	// Name is the name of file in attachment. Required for Data and B64File. Optional for FilePath.
+	// Name is the name of file in attachment. Required for Data and B64Data. Optional for FilePath.
 	Name string
 	// MimeType of attachment. If empty then is obtained from Name (if not empty) or FilePath. If cannot obtained, application/octet-stream is set.
 	MimeType string
-	// B64File is the base64 string of file to attach.
+	// B64Data is the base64 string to attach.
 	B64Data string
 	// Data is the []byte of file to attach.
 	Data []byte
@@ -94,7 +94,7 @@ func getAttachmentType(file *File) (attachType, error) {
 
 	// check if base64
 	if len(file.B64Data) > 0 {
-		// b64file requires a name
+		// B64Data requires a name
 		if len(file.Name) == 0 {
 			return 0, errors.New("attach from base64 string requires a name")
 		}
