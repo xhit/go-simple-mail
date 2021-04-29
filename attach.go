@@ -11,6 +11,8 @@ import (
 // File represents the file that can be added to the email message.
 // You can add attachment from file in path, from base64 string or from []byte.
 // You can define if attachment is inline or not.
+// Only one, Data, B64Data or FilePath is supported. If multiple are set, then
+// the first in that order is used.
 type File struct {
 	// FilePath is the path of the file to attach.
 	FilePath string
