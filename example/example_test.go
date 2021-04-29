@@ -83,7 +83,7 @@ func TestSendMail(t *testing.T) {
 	email.Attach(&mail.File{FilePath: "C:/Users/sdelacruz/Pictures/Gopher.png"})
 
 	//Attach the file with a base64
-	email.Attach(&mail.File{B64File: "Zm9v", Name: "filename"})
+	email.Attach(&mail.File{B64Data: "Zm9v", Name: "filename"})
 
 	//Set a different date in header email
 	email.SetDate("2015-04-28 10:32:00 CDT")

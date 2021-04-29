@@ -19,7 +19,7 @@ type File struct {
 	// MimeType of attachment. If empty then is obtained from Name (if not empty) or FilePath. If cannot obtained, application/octet-stream is set.
 	MimeType string
 	// B64File is the base64 string of file to attach.
-	B64File string
+	B64Data string
 	// Data is the []byte of file to attach.
 	Data []byte
 	// Inline defines if attachment is inline or not.
@@ -93,7 +93,7 @@ func getAttachmentType(file *File) (attachType, error) {
 	}
 
 	// check if base64
-	if len(file.B64File) > 0 {
+	if len(file.B64Data) > 0 {
 		// b64file requires a name
 		if len(file.Name) == 0 {
 			return 0, errors.New("Mail Error: Attach from base64 string requires a name")
@@ -113,7 +113,7 @@ func getAttachmentType(file *File) (attachType, error) {
 func (email *Email) attachB64(file *File) error {
 
 	// decode the string
-	dec, err := base64.StdEncoding.DecodeString(file.B64File)
+	dec, err := base64.StdEncoding.DecodeString(file.B64Data)
 	if err != nil {
 		return errors.New("Mail Error: Failed to decode base64 attachment with following error: " + err.Error())
 	}
