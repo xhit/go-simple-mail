@@ -63,6 +63,8 @@ type part struct {
 // Encryption type to enum encryption types (None, SSL/TLS, STARTTLS)
 type Encryption int
 
+// TODO: Remove EncryptionSSL and EncryptionTLS before launch v3
+
 const (
 	// EncryptionNone uses no encryption when sending email
 	EncryptionNone Encryption = iota
@@ -76,6 +78,7 @@ const (
 	EncryptionSTARTTLS
 )
 
+// TODO: Remove last two indexes
 var encryptionTypes = [...]string{"None", "SSL/TLS", "STARTTLS", "SSL/TLS", "STARTTLS"}
 
 func (encryption Encryption) String() string {
@@ -608,6 +611,7 @@ func dial(host string, port string, encryption Encryption, config *tls.Config) (
 
 	// do the actual dial
 	switch encryption {
+	// TODO: Remove EncryptionSSL check before launch v3
 	case EncryptionSSL, EncryptionSSLTLS:
 		conn, err = tls.Dial("tcp", address, config)
 	default:
@@ -648,6 +652,7 @@ func smtpConnect(host, port, helo string, a auth, encryption Encryption, config 
 	}
 
 	// STARTTLS if necessary
+	// TODO: Remove EncryptionTLS check before launch v3
 	if encryption == EncryptionTLS || encryption == EncryptionSTARTTLS {
 		if ok, _ := c.extension("STARTTLS"); ok {
 			if err = c.startTLS(config); err != nil {
