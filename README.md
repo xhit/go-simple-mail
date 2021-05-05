@@ -153,7 +153,13 @@ func main() {
 
 	email.SetBody(mail.TextHTML, htmlBody)
 
-	email.AddInline("/path/to/image.png", "Gopher.png")
+	// add inline
+	email.Attach(&mail.File{FilePath: "/path/to/image.png", Name:"Gopher.png", Inline: true})
+
+	// always check error after send
+	if email.Error != nil{
+		log.Fatal(email.Error)
+	}
 
 	// Call Send and pass the client
 	err = email.Send(smtpClient)
@@ -183,7 +189,14 @@ func main() {
 			SetSubject("New Go Email")
 
 		email.SetBody(mail.TextHTML, htmlBody)
-		email.AddInline("/path/to/image.png", "Gopher.png")
+
+		// add inline
+		email.Attach(&mail.File{FilePath: "/path/to/image.png", Name:"Gopher.png", Inline: true})
+
+		// always check error after send
+		if email.Error != nil{
+			log.Fatal(email.Error)
+		}
 
 		// Call Send and pass the client
 		err = email.Send(smtpClient)

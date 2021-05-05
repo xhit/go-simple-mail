@@ -77,19 +77,24 @@ func TestSendMail(t *testing.T) {
 	email.AddBcc("bcccc@example2.com")
 
 	//Add inline too!
-	email.AddInline("C:/Users/sdelacruz/Pictures/Gopher.png")
+	email.Attach(&mail.File{FilePath: "C:/Users/sdelacruz/Pictures/Gopher.png", Inline: true})
 
 	//Attach a file with path
-	email.AddAttachment("C:/Users/sdelacruz/Pictures/Gopher.png")
+	email.Attach(&mail.File{FilePath: "C:/Users/sdelacruz/Pictures/Gopher.png"})
 
 	//Attach the file with a base64
-	email.AddAttachmentBase64("base64string", "filename")
+	email.Attach(&mail.File{B64Data: "Zm9v", Name: "filename"})
 
 	//Set a different date in header email
 	email.SetDate("2015-04-28 10:32:00 CDT")
 
 	//Send with low priority
 	email.SetPriority(mail.PriorityLow)
+
+	// always check error after send
+	if email.Error != nil {
+		t.Error("Expected nil, got", email.Error, "generating email")
+	}
 
 	//Pass the client to the email message to send it
 	err = email.Send(smtpClient)
@@ -155,10 +160,13 @@ func sendEmail(htmlBody string, to string, smtpClient *mail.SMTPClient) error {
 	//Send with high priority
 	email.SetPriority(mail.PriorityHigh)
 
-	//Pass the client to the email message to send it
-	err := email.Send(smtpClient)
+	// always check error after send
+	if email.Error != nil {
+		return email.Error
+	}
 
-	return err
+	//Pass the client to the email message to send it
+	return email.Send(smtpClient)
 }
 
 // TestWithTLS using gmail port 587.
