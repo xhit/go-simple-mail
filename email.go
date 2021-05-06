@@ -432,6 +432,22 @@ func (email *Email) SetBody(contentType contentType, body string) *Email {
 	return email
 }
 
+// SetBodyData sets the body of the email message from []byte
+func (email *Email) SetBodyData(contentType contentType, body []byte) *Email {
+	if email.Error != nil {
+		return email
+	}
+
+	email.parts = []part{
+		{
+			contentType: contentType.string(),
+			body:        bytes.NewBuffer(body),
+		},
+	}
+
+	return email
+}
+
 // AddHeader adds the given "header" with the passed "value".
 func (email *Email) AddHeader(header string, values ...string) *Email {
 	if email.Error != nil {
