@@ -17,8 +17,12 @@ func (email *Email) AddAttachment(file string, name ...string) *Email {
 		email.Error = errors.New("Mail Error: Attach can only have a file and an optional name")
 		return email
 	}
-
-	return email.Attach(&File{Name: name[0], FilePath: file})
+	
+	var nm string
+	if len(name) == 1 {
+		nm = name[0]
+	}
+	return email.Attach(&File{Name: nm, FilePath: file})
 }
 
 // AddAttachmentData. DEPRECATED. Use Attach method. Allows you to add an in-memory attachment to the email message.
@@ -43,8 +47,13 @@ func (email *Email) AddInline(file string, name ...string) *Email {
 		email.Error = errors.New("Mail Error: Inline can only have a file and an optional name")
 		return email
 	}
-
-	return email.Attach(&File{Name: name[0], FilePath: file, Inline: true})
+	
+	var nm string
+	if len(name) == 1 {
+		nm = name[0]
+	}
+	
+	return email.Attach(&File{Name: nm, FilePath: file, Inline: true})
 }
 
 // AddInlineData. DEPRECATED. Use Attach method. Allows you to add an inline in-memory attachment to the email message.
