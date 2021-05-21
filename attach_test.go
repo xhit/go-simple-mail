@@ -105,4 +105,18 @@ func TestAttachments(t *testing.T) {
 		got := msg.attachments[0].Data
 		checkByteSlice(t, got, want)
 	})
+	t.Run("Inline File not name Deprecated", func(t *testing.T) {
+		msg := NewMSG()
+		msg.AddInline("testdata/foo.txt")
+		checkError(t, msg.Error)
+		got := msg.inlines[0].Data
+		checkByteSlice(t, got, want)
+	})
+	t.Run("Attachment File not name Deprecated", func(t *testing.T) {
+		msg := NewMSG()
+		msg.AddAttachment("testdata/foo.txt")
+		checkError(t, msg.Error)
+		got := msg.attachments[0].Data
+		checkByteSlice(t, got, want)
+	})
 }
