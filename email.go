@@ -126,6 +126,8 @@ const (
 	AuthLogin
 	// AuthCRAMMD5 implements the CRAM-MD5 authentication
 	AuthCRAMMD5
+	// AuthNone for SMTP servers without authentication
+	AuthNone
 )
 
 // NewMSG creates a new email. It uses UTF-8 by default. All charsets: http://webcheatsheet.com/HTML/character_sets_list.php
@@ -649,7 +651,7 @@ func dial(host string, port string, encryption Encryption, config *tls.Config) (
 
 // smtpConnect connects to the smtp server and starts TLS and passes auth
 // if necessary
-func smtpConnect(host, port, helo string, a auth, encryption Encryption, config *tls.Config) (*smtpClient, error) {
+func smtpConnect(host, port, helo string, a auth, at authType, encryption Encryption, config *tls.Config) (*smtpClient, error) {
 	// connect to the mail server
 	c, err := dial(host, port, encryption, config)
 
@@ -678,12 +680,15 @@ func smtpConnect(host, port, helo string, a auth, encryption Encryption, config 
 		}
 	}
 
-	// pass the authentication if necessary
-	if a != nil {
-		if ok, _ := c.extension("AUTH"); ok {
-			if err = c.authenticate(a); err != nil {
-				c.close()
-				return nil, fmt.Errorf("Mail Error on Auth: %w", err)
+	// only pass authentication if defined
+	if at != AuthNone {
+		// pass the authentication if necessary
+		if a != nil {
+			if ok, _ := c.extension("AUTH"); ok {
+				if err = c.authenticate(a); err != nil {
+					c.close()
+					return nil, fmt.Errorf("Mail Error on Auth: %w", err)
+				}
 			}
 		}
 	}
@@ -724,7 +729,7 @@ func (server *SMTPServer) Connect() (*SMTPClient, error) {
 	if server.ConnectTimeout != 0 {
 		smtpConnectChannel = make(chan error, 2)
 		go func() {
-			c, err = smtpConnect(server.Host, fmt.Sprintf("%d", server.Port), server.Helo, a, server.Encryption, tlsConfig)
+			c, err = smtpConnect(server.Host, fmt.Sprintf("%d", server.Port), server.Helo, a, server.Authentication, server.Encryption, tlsConfig)
 			// send the result
 			smtpConnectChannel <- err
 		}()
@@ -739,7 +744,7 @@ func (server *SMTPServer) Connect() (*SMTPClient, error) {
 		}
 	} else {
 		// no ConnectTimeout, just fire the connect
-		c, err = smtpConnect(server.Host, fmt.Sprintf("%d", server.Port), server.Helo, a, server.Encryption, tlsConfig)
+		c, err = smtpConnect(server.Host, fmt.Sprintf("%d", server.Port), server.Helo, a, server.Authentication, server.Encryption, tlsConfig)
 		if err != nil {
 			return nil, err
 		}
