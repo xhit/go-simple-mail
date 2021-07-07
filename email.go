@@ -34,7 +34,7 @@ SMTPServer represents a SMTP Server
 If authentication is CRAM-MD5 then the Password is the Secret
 */
 type SMTPServer struct {
-	Authentication authType
+	Authentication AuthType
 	Encryption     Encryption
 	Username       string
 	Password       string
@@ -117,11 +117,11 @@ func (contentType contentType) string() string {
 	return contentTypes[contentType]
 }
 
-type authType int
+type AuthType int
 
 const (
 	// AuthPlain implements the PLAIN authentication
-	AuthPlain authType = iota
+	AuthPlain AuthType = iota
 	// AuthLogin implements the LOGIN authentication
 	AuthLogin
 	// AuthCRAMMD5 implements the CRAM-MD5 authentication
@@ -651,7 +651,7 @@ func dial(host string, port string, encryption Encryption, config *tls.Config) (
 
 // smtpConnect connects to the smtp server and starts TLS and passes auth
 // if necessary
-func smtpConnect(host, port, helo string, a auth, at authType, encryption Encryption, config *tls.Config) (*smtpClient, error) {
+func smtpConnect(host, port, helo string, a auth, at AuthType, encryption Encryption, config *tls.Config) (*smtpClient, error) {
 	// connect to the mail server
 	c, err := dial(host, port, encryption, config)
 
