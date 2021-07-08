@@ -69,6 +69,7 @@ Go Simple Mail supports:
 - Add Custom Headers in Message
 - Send NOOP, RESET, QUIT and CLOSE to SMTP client
 - PLAIN, LOGIN and CRAM-MD5 Authentication (since v2.3.0)
+- Allow connect to SMTP without authentication (since v2.10.0)
 - Custom TLS Configuration (since v2.5.0)
 - Send a RFC822 formatted message (since v2.8.0)
 - Send from localhost (yes, Go standard SMTP package cannot do that because... WTF Google!)
@@ -122,6 +123,7 @@ func main() {
 	// - PLAIN (default)
 	// - LOGIN
 	// - CRAM-MD5
+	// - None
 	// server.Authentication = mail.AuthPlain
 
 	// Variable to keep alive connection
