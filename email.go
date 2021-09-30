@@ -109,9 +109,11 @@ const (
 	TextPlain contentType = iota
 	// TextHTML sets body type to text/html in message body
 	TextHTML
+	// TextCalendar sets body type to text/calendar in message body
+	TextCalendar
 )
 
-var contentTypes = [...]string{"text/plain", "text/html"}
+var contentTypes = [...]string{"text/plain", "text/html", "text/calendar"}
 
 func (contentType contentType) string() string {
 	return contentTypes[contentType]
