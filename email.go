@@ -527,6 +527,25 @@ func (email *Email) AddAlternative(contentType contentType, body string) *Email 
 	return email
 }
 
+// AddAlternativeData allows you to add alternative parts to the body
+// of the email message. This is most commonly used to add an
+// html version in addition to a plain text version that was
+// already added with SetBody.
+func (email *Email) AddAlternativeData(contentType contentType, body []byte) *Email {
+	if email.Error != nil {
+		return email
+	}
+
+	email.parts = append(email.parts,
+		part{
+			contentType: contentType.string(),
+			body:        bytes.NewBuffer(body),
+		},
+	)
+
+	return email
+}
+
 // GetFrom returns the sender of the email, if any
 func (email *Email) GetFrom() string {
 	from := email.returnPath

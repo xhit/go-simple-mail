@@ -157,6 +157,8 @@ func main() {
 
 	// also you can add body from []byte with SetBodyData, example:
 	// email.SetBodyData(mail.TextHTML, []byte(htmlBody))
+	// or alternative part
+	// email.AddAlternativeData(mail.TextHTML, []byte(htmlBody))
 
 	// add inline
 	email.Attach(&mail.File{FilePath: "/path/to/image.png", Name:"Gopher.png", Inline: true})
