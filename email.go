@@ -10,6 +10,8 @@ import (
 	"net/textproto"
 	"strconv"
 	"time"
+
+	"github.com/toorop/go-dkim"
 )
 
 // Email represents an email message.
@@ -27,6 +29,7 @@ type Email struct {
 	Encoding    encoding
 	Error       error
 	SMTPServer  *smtpClient
+	DkimMsg     string
 }
 
 /*
@@ -257,7 +260,7 @@ func (email *Email) AddAddresses(header string, addresses ...string) *Email {
 	found := false
 
 	// check for a valid address header
-	for _, h := range []string{"To", "Cc", "Bcc", "From", "Sender", "Reply-To", "Return-Path"} {
+	for _, h := range []string{"To", "Cc", "Bcc", "From", "Sender", "Reply-To", "Return-Path", "DKIM-Signature", "List-Unsubscribe"} {
 		if header == h {
 			found = true
 		}
@@ -416,6 +419,32 @@ func (email *Email) SetSubject(subject string) *Email {
 	}
 
 	email.AddHeader("Subject", subject)
+
+	return email
+}
+
+// SetListUnsubscribe sets the Unsubscribe address.
+func (email *Email) SetListUnsubscribe(address string) *Email {
+	if email.Error != nil {
+		return email
+	}
+
+	email.AddHeader("List-Unsubscribe", address)
+
+	return email
+}
+
+// SetDkim adds DomainKey signature to the email message (header+body)
+func (email *Email) SetDkim(privateKey string, options dkim.SigOptions) *Email {
+
+	msg := []byte(email.GetMessage())
+	err := dkim.Sign(&msg, options)
+
+	if err != nil {
+		return email
+	}
+
+	email.DkimMsg = string(msg)
 
 	return email
 }
@@ -624,6 +653,7 @@ func (email *Email) Send(client *SMTPClient) error {
 // SendEnvelopeFrom sends the composed email with envelope
 // sender. 'from' must be an email address.
 func (email *Email) SendEnvelopeFrom(from string, client *SMTPClient) error {
+	var msg string
 	if email.Error != nil {
 		return email.Error
 	}
@@ -636,7 +666,11 @@ func (email *Email) SendEnvelopeFrom(from string, client *SMTPClient) error {
 		return errors.New("Mail Error: No recipient specified")
 	}
 
-	msg := email.GetMessage()
+	if email.DkimMsg != "" {
+		msg = email.DkimMsg
+	} else {
+		msg = email.GetMessage()
+	}
 
 	return send(from, email.recipients, msg, client)
 }
