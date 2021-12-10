@@ -435,7 +435,7 @@ func (email *Email) SetListUnsubscribe(address string) *Email {
 }
 
 // SetDkim adds DomainKey signature to the email message (header+body)
-func (email *Email) SetDkim(privateKey string, options dkim.SigOptions) *Email {
+func (email *Email) SetDkim(options dkim.SigOptions) *Email {
 
 	msg := []byte(email.GetMessage())
 	err := dkim.Sign(&msg, options)
