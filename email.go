@@ -260,7 +260,7 @@ func (email *Email) AddAddresses(header string, addresses ...string) *Email {
 	found := false
 
 	// check for a valid address header
-	for _, h := range []string{"To", "Cc", "Bcc", "From", "Sender", "Reply-To", "Return-Path", "DKIM-Signature", "List-Unsubscribe"} {
+	for _, h := range []string{"To", "Cc", "Bcc", "From", "Sender", "Reply-To", "Return-Path"} {
 		if header == h {
 			found = true
 		}
@@ -436,11 +436,15 @@ func (email *Email) SetListUnsubscribe(address string) *Email {
 
 // SetDkim adds DomainKey signature to the email message (header+body)
 func (email *Email) SetDkim(options dkim.SigOptions) *Email {
+	if email.Error != nil {
+		return email
+	}
 
 	msg := []byte(email.GetMessage())
 	err := dkim.Sign(&msg, options)
 
 	if err != nil {
+		email.Error = errors.New("Mail Error: cannot dkim sign message due: %s" + err.Error())
 		return email
 	}
 
@@ -517,6 +521,8 @@ func (email *Email) AddHeader(header string, values ...string) *Email {
 			return email
 		}
 		email.SetDate(values[0])
+	case "List-Unsubscribe":
+		fallthrough
 	default:
 		email.headers[header] = values
 	}
@@ -653,7 +659,6 @@ func (email *Email) Send(client *SMTPClient) error {
 // SendEnvelopeFrom sends the composed email with envelope
 // sender. 'from' must be an email address.
 func (email *Email) SendEnvelopeFrom(from string, client *SMTPClient) error {
-	var msg string
 	if email.Error != nil {
 		return email.Error
 	}
@@ -666,6 +671,7 @@ func (email *Email) SendEnvelopeFrom(from string, client *SMTPClient) error {
 		return errors.New("Mail Error: No recipient specified")
 	}
 
+	var msg string
 	if email.DkimMsg != "" {
 		msg = email.DkimMsg
 	} else {
