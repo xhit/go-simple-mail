@@ -10,6 +10,8 @@ import (
 	"net/textproto"
 	"strconv"
 	"time"
+
+	"github.com/toorop/go-dkim"
 )
 
 // Email represents an email message.
@@ -27,6 +29,7 @@ type Email struct {
 	Encoding    encoding
 	Error       error
 	SMTPServer  *smtpClient
+	DkimMsg     string
 }
 
 /*
@@ -420,6 +423,36 @@ func (email *Email) SetSubject(subject string) *Email {
 	return email
 }
 
+// SetListUnsubscribe sets the Unsubscribe address.
+func (email *Email) SetListUnsubscribe(address string) *Email {
+	if email.Error != nil {
+		return email
+	}
+
+	email.AddHeader("List-Unsubscribe", address)
+
+	return email
+}
+
+// SetDkim adds DomainKey signature to the email message (header+body)
+func (email *Email) SetDkim(options dkim.SigOptions) *Email {
+	if email.Error != nil {
+		return email
+	}
+
+	msg := []byte(email.GetMessage())
+	err := dkim.Sign(&msg, options)
+
+	if err != nil {
+		email.Error = errors.New("Mail Error: cannot dkim sign message due: %s" + err.Error())
+		return email
+	}
+
+	email.DkimMsg = string(msg)
+
+	return email
+}
+
 // SetBody sets the body of the email message.
 func (email *Email) SetBody(contentType contentType, body string) *Email {
 	if email.Error != nil {
@@ -488,6 +521,8 @@ func (email *Email) AddHeader(header string, values ...string) *Email {
 			return email
 		}
 		email.SetDate(values[0])
+	case "List-Unsubscribe":
+		fallthrough
 	default:
 		email.headers[header] = values
 	}
@@ -636,7 +671,12 @@ func (email *Email) SendEnvelopeFrom(from string, client *SMTPClient) error {
 		return errors.New("Mail Error: No recipient specified")
 	}
 
-	msg := email.GetMessage()
+	var msg string
+	if email.DkimMsg != "" {
+		msg = email.DkimMsg
+	} else {
+		msg = email.GetMessage()
+	}
 
 	return send(from, email.recipients, msg, client)
 }
