@@ -11,7 +11,7 @@ The best way to send emails in Go with SMTP Keep Alive and Timeout for Connect a
 Examples in this README are for v2.2.0 and above. Examples for older versions
 can be found [here](https://gist.github.com/xhit/54516917473420a8db1b6fff68a21c99).
 
-The minimum Go version is 1.13, for Go 1.12 and older use branch `go1.12`.
+Go 1.13+ is required.
 
 Breaking change in 2.2.0: The signature of `SetBody` and `AddAlternative` used
 to accept strings ("text/html" and "text/plain") and not require on of the
@@ -73,6 +73,9 @@ Go Simple Mail supports:
 - Custom TLS Configuration (since v2.5.0)
 - Send a RFC822 formatted message (since v2.8.0)
 - Send from localhost (yes, Go standard SMTP package cannot do that because... WTF Google!)
+- Support text/calendar content type body (since v2.11.0)
+- Support add a List-Unsubscribe header (since v2.11.0)
+- Support to add a DKIM signarure (since v2.11.0)
 
 ## Documentation
 
