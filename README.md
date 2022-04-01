@@ -184,7 +184,7 @@ func main() {
 		AddTo("xhit@example.com").
 		AddCc("otherto@example.com").
 		SetSubject("New Go Email").
-		SetListUnsubscribe("<mailto:unsubscribe@example.com?subject=https://example.com/unsubscribe>").
+		SetListUnsubscribe("<mailto:unsubscribe@example.com?subject=https://example.com/unsubscribe>")
 
 	email.SetBody(mail.TextHTML, htmlBody)
 
