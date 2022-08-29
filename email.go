@@ -50,7 +50,7 @@ type SMTPServer struct {
 	TLSConfig      *tls.Config
 }
 
-//SMTPClient represents a SMTP Client for send email
+// SMTPClient represents a SMTP Client for send email
 type SMTPClient struct {
 	Client      *smtpClient
 	KeepAlive   bool
@@ -105,11 +105,11 @@ func (encoding encoding) string() string {
 	return encodingTypes[encoding]
 }
 
-type contentType int
+type ContentType int
 
 const (
 	// TextPlain sets body type to text/plain in message body
-	TextPlain contentType = iota
+	TextPlain ContentType = iota
 	// TextHTML sets body type to text/html in message body
 	TextHTML
 	// TextCalendar sets body type to text/calendar in message body
@@ -118,7 +118,7 @@ const (
 
 var contentTypes = [...]string{"text/plain", "text/html", "text/calendar"}
 
-func (contentType contentType) string() string {
+func (contentType ContentType) string() string {
 	return contentTypes[contentType]
 }
 
@@ -148,7 +148,7 @@ func NewMSG() *Email {
 	return email
 }
 
-//NewSMTPClient returns the client for send email
+// NewSMTPClient returns the client for send email
 func NewSMTPClient() *SMTPServer {
 	server := &SMTPServer{
 		Authentication: AuthPlain,
@@ -454,7 +454,7 @@ func (email *Email) SetDkim(options dkim.SigOptions) *Email {
 }
 
 // SetBody sets the body of the email message.
-func (email *Email) SetBody(contentType contentType, body string) *Email {
+func (email *Email) SetBody(contentType ContentType, body string) *Email {
 	if email.Error != nil {
 		return email
 	}
@@ -470,7 +470,7 @@ func (email *Email) SetBody(contentType contentType, body string) *Email {
 }
 
 // SetBodyData sets the body of the email message from []byte
-func (email *Email) SetBodyData(contentType contentType, body []byte) *Email {
+func (email *Email) SetBodyData(contentType ContentType, body []byte) *Email {
 	if email.Error != nil {
 		return email
 	}
@@ -547,7 +547,7 @@ func (email *Email) AddHeaders(headers textproto.MIMEHeader) *Email {
 // of the email message. This is most commonly used to add an
 // html version in addition to a plain text version that was
 // already added with SetBody.
-func (email *Email) AddAlternative(contentType contentType, body string) *Email {
+func (email *Email) AddAlternative(contentType ContentType, body string) *Email {
 	if email.Error != nil {
 		return email
 	}
@@ -566,7 +566,7 @@ func (email *Email) AddAlternative(contentType contentType, body string) *Email 
 // of the email message. This is most commonly used to add an
 // html version in addition to a plain text version that was
 // already added with SetBody.
-func (email *Email) AddAlternativeData(contentType contentType, body []byte) *Email {
+func (email *Email) AddAlternativeData(contentType ContentType, body []byte) *Email {
 	if email.Error != nil {
 		return email
 	}
@@ -757,7 +757,7 @@ func smtpConnect(host, port, helo string, a auth, at AuthType, encryption Encryp
 	return c, nil
 }
 
-//Connect returns the smtp client
+// Connect returns the smtp client
 func (server *SMTPServer) Connect() (*SMTPClient, error) {
 
 	var a auth
@@ -930,7 +930,7 @@ func sendMailProcess(from string, to []string, msg string, c *smtpClient) error 
 	return nil
 }
 
-//check if keepAlive for close or reset
+// check if keepAlive for close or reset
 func checkKeepAlive(client *SMTPClient) {
 	if client.KeepAlive {
 		client.Client.reset()
