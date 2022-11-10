@@ -16,20 +16,21 @@ import (
 
 // Email represents an email message.
 type Email struct {
-	from        string
-	sender      string
-	replyTo     string
-	returnPath  string
-	recipients  []string
-	headers     textproto.MIMEHeader
-	parts       []part
-	attachments []*File
-	inlines     []*File
-	Charset     string
-	Encoding    encoding
-	Error       error
-	SMTPServer  *smtpClient
-	DkimMsg     string
+	from                  string
+	sender                string
+	replyTo               string
+	returnPath            string
+	recipients            []string
+	headers               textproto.MIMEHeader
+	parts                 []part
+	attachments           []*File
+	inlines               []*File
+	Charset               string
+	Encoding              encoding
+	Error                 error
+	SMTPServer            *smtpClient
+	DkimMsg               string
+	AllowDuplicateAddress bool
 }
 
 /*
@@ -317,7 +318,7 @@ func (email *Email) AddAddresses(header string, addresses ...string) *Email {
 			email.returnPath = address.Address
 		default:
 			// check that the address was added to the recipients list
-			email.recipients, err = addAddress(email.recipients, address.Address)
+			email.recipients, err = addAddress(email.recipients, address.Address, email.AllowDuplicateAddress)
 			if err != nil {
 				email.Error = errors.New("Mail Error: " + err.Error() + "; Header: [" + header + "] Address: [" + addresses[i] + "]")
 				return email
@@ -343,11 +344,13 @@ func (email *Email) AddAddresses(header string, addresses ...string) *Email {
 }
 
 // addAddress adds an address to the address list if it hasn't already been added
-func addAddress(addressList []string, address string) ([]string, error) {
-	// loop through the address list to check for dups
-	for _, a := range addressList {
-		if address == a {
-			return addressList, errors.New("Mail Error: Address: [" + address + "] has already been added")
+func addAddress(addressList []string, address string, allowDuplicateAddress bool) ([]string, error) {
+	if !allowDuplicateAddress {
+		// loop through the address list to check for dups
+		for _, a := range addressList {
+			if address == a {
+				return addressList, errors.New("Mail Error: Address: [" + address + "] has already been added")
+			}
 		}
 	}
 
