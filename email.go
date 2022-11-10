@@ -16,21 +16,21 @@ import (
 
 // Email represents an email message.
 type Email struct {
-	from                      string
-	sender                    string
-	replyTo                   string
-	returnPath                string
-	recipients                []string
-	headers                   textproto.MIMEHeader
-	parts                     []part
-	attachments               []*File
-	inlines                   []*File
-	Charset                   string
-	Encoding                  encoding
-	Error                     error
-	SMTPServer                *smtpClient
-	DkimMsg                   string
-	DuplicateRecipientAllowed bool
+	from                  string
+	sender                string
+	replyTo               string
+	returnPath            string
+	recipients            []string
+	headers               textproto.MIMEHeader
+	parts                 []part
+	attachments           []*File
+	inlines               []*File
+	Charset               string
+	Encoding              encoding
+	Error                 error
+	SMTPServer            *smtpClient
+	DkimMsg               string
+	AllowDuplicateAddress bool
 }
 
 /*
@@ -139,10 +139,9 @@ const (
 // NewMSG creates a new email. It uses UTF-8 by default. All charsets: http://webcheatsheet.com/HTML/character_sets_list.php
 func NewMSG() *Email {
 	email := &Email{
-		headers:                   make(textproto.MIMEHeader),
-		Charset:                   "UTF-8",
-		Encoding:                  EncodingQuotedPrintable,
-		DuplicateRecipientAllowed: false,
+		headers:  make(textproto.MIMEHeader),
+		Charset:  "UTF-8",
+		Encoding: EncodingQuotedPrintable,
 	}
 
 	email.AddHeader("MIME-Version", "1.0")
@@ -319,7 +318,7 @@ func (email *Email) AddAddresses(header string, addresses ...string) *Email {
 			email.returnPath = address.Address
 		default:
 			// check that the address was added to the recipients list
-			email.recipients, err = addAddress(email.recipients, address.Address, email.DuplicateRecipientAllowed)
+			email.recipients, err = addAddress(email.recipients, address.Address, email.AllowDuplicateAddress)
 			if err != nil {
 				email.Error = errors.New("Mail Error: " + err.Error() + "; Header: [" + header + "] Address: [" + addresses[i] + "]")
 				return email
@@ -345,8 +344,8 @@ func (email *Email) AddAddresses(header string, addresses ...string) *Email {
 }
 
 // addAddress adds an address to the address list if it hasn't already been added
-func addAddress(addressList []string, address string, duplicateRecipientAllowed bool) ([]string, error) {
-	if !duplicateRecipientAllowed {
+func addAddress(addressList []string, address string, allowDuplicateAddress bool) ([]string, error) {
+	if !allowDuplicateAddress {
 		// loop through the address list to check for dups
 		for _, a := range addressList {
 			if address == a {
