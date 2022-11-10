@@ -81,6 +81,8 @@ Go Simple Mail supports:
 
 https://pkg.go.dev/github.com/xhit/go-simple-mail/v2?tab=doc
 
+Note: by default duplicated recipients throws an error, from `v2.13.0` you can use `email.AllowDuplicateAddress = true` to avoid the check.
+
 ## Download
 
 This package uses go modules.
