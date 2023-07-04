@@ -135,16 +135,17 @@ const (
 	AuthCRAMMD5
 	// AuthNone for SMTP servers without authentication
 	AuthNone
+	// AuthAuto (default) use the first AuthType of the list of returned types supported by SMTP
 	AuthAuto
 )
 
 func (at AuthType) String() string {
 	switch at {
-	case 0:
+	case AuthPlain:
 		return "PLAIN"
-	case 1:
+	case AuthLogin:
 		return "LOGIN"
-	case 2:
+	case AuthCRAMMD5:
 		return "CRAM-MD5"
 	default:
 		return ""
