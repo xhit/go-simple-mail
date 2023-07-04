@@ -1,32 +1,38 @@
-name: Go
-
-on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
-
+on: [push, pull_request]
+name: build
 jobs:
 
-  build:
-    name: Build
-    runs-on: ubuntu-latest
+  test:
+    strategy:
+      matrix:
+        go-version: [1.14.x, 1.15.x, 1.16.x, 1.17.x, 1.18.x, 1.19.x, 1.20.x]
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        targetplatform: [x86, x64]
+
+    runs-on: ${{ matrix.os }}
+
     steps:
 
-    - name: Set up Go 1.14
-      uses: actions/setup-go@v2
+    - name: Install Go
+      uses: actions/setup-go@v4
       with:
-        go-version: 1.14
-      id: go
+        go-version: ${{ matrix.go-version }}
 
-    - name: Check out code into the Go module directory
-      uses: actions/checkout@v2
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-#     - name: Get dependencies
-#       run: go get -v -t -d ./...
-
-#     - name: Build
-#       run: go build -v .
+    - name: Get dependencies
+      run: |
+        env GO111MODULE=on go vet ./...
+    - name: Build
+      run: go build -v .
 
     - name: Test
-      run: go test -v .
+      run: env GO111MODULE=on go test -v -timeout 30m -race ./... -coverprofile=coverage.txt -covermode=atomic
+
+    - name: Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: coverage.txt
+        flags: unittests
+        name: codecov-umbrella
