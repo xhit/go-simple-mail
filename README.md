@@ -82,7 +82,9 @@ Go Simple Mail supports:
 
 https://pkg.go.dev/github.com/xhit/go-simple-mail/v2?tab=doc
 
-Note: by default duplicated recipients throws an error, from `v2.13.0` you can use `email.AllowDuplicateAddress = true` to avoid the check.
+Note 1: by default duplicated recipients throws an error, from `v2.13.0` you can use `email.AllowDuplicateAddress = true` to avoid the check.
+
+Note 2: by default Bcc header is not set in email. From `v2.14.0` you can use `email.AddBccToHeader = true` to add this.
 
 ## Download
 

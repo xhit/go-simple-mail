@@ -32,6 +32,7 @@ type Email struct {
 	SMTPServer            *smtpClient
 	DkimMsg               string
 	AllowDuplicateAddress bool
+	AddBccToHeader        bool
 }
 
 /*
@@ -347,6 +348,11 @@ func (email *Email) AddAddresses(header string, addresses ...string) *Email {
 			email.headers.Del("Sender")
 			email.Error = errors.New("Mail Error: From and Sender should not be set to the same address")
 			return email
+		}
+
+		// add Bcc only if AddBccToHeader is true
+		if header == "Bcc" && email.AddBccToHeader {
+			email.headers.Add(header, address.String())
 		}
 
 		// add all addresses to the headers except for Bcc and Return-Path
