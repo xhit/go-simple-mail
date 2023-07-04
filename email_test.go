@@ -28,7 +28,7 @@ func TestSendRace(t *testing.T) {
 	server.ConnectTimeout = timeout
 	server.SendTimeout = timeout
 	server.KeepAlive = false
-	server.Host = `localhost`
+	server.Host = `127.0.0.1`
 	server.Port = port
 
 	smtpClient, err := server.Connect()
