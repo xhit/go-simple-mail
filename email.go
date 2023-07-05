@@ -831,6 +831,13 @@ func (server *SMTPServer) Connect() (*SMTPClient, error) {
 		tlsConfig = &tls.Config{ServerName: server.Host}
 	}
 
+	if server.Helo == "" {
+		atIndex := strings.LastIndex(server.Username, "@")
+		if atIndex >= 0 {
+			server.Helo = server.Username[atIndex+1:]
+		}
+	}
+
 	// if there is a ConnectTimeout, setup the channel and do the connect under a goroutine
 	if server.ConnectTimeout != 0 {
 		smtpConnectChannel = make(chan error, 2)
