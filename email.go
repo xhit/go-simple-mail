@@ -56,7 +56,7 @@ type SMTPServer struct {
 
 // SMTPClient represents a SMTP Client for send email
 type SMTPClient struct {
-	sync.Mutex
+	mu          sync.Mutex
 	Client      *smtpClient
 	KeepAlive   bool
 	SendTimeout time.Duration
@@ -867,29 +867,29 @@ func (server *SMTPServer) Connect() (*SMTPClient, error) {
 
 // Reset send RSET command to smtp client
 func (smtpClient *SMTPClient) Reset() error {
-	smtpClient.Lock()
-	defer smtpClient.Unlock()
+	smtpClient.mu.Lock()
+	defer smtpClient.mu.Unlock()
 	return smtpClient.Client.reset()
 }
 
 // Noop send NOOP command to smtp client
 func (smtpClient *SMTPClient) Noop() error {
-	smtpClient.Lock()
-	defer smtpClient.Unlock()
+	smtpClient.mu.Lock()
+	defer smtpClient.mu.Unlock()
 	return smtpClient.Client.noop()
 }
 
 // Quit send QUIT command to smtp client
 func (smtpClient *SMTPClient) Quit() error {
-	smtpClient.Lock()
-	defer smtpClient.Unlock()
+	smtpClient.mu.Lock()
+	defer smtpClient.mu.Unlock()
 	return smtpClient.Client.quit()
 }
 
 // Close closes the connection
 func (smtpClient *SMTPClient) Close() error {
-	smtpClient.Lock()
-	defer smtpClient.Unlock()
+	smtpClient.mu.Lock()
+	defer smtpClient.mu.Unlock()
 	return smtpClient.Client.close()
 }
 
@@ -938,7 +938,6 @@ func send(from string, to []string, msg string, client *SMTPClient) error {
 				checkKeepAlive(client)
 				return errors.New("Mail Error: SMTP Send timed out")
 			}
-
 		}
 	}
 
@@ -946,8 +945,8 @@ func send(from string, to []string, msg string, client *SMTPClient) error {
 }
 
 func sendMailProcess(from string, to []string, msg string, c *SMTPClient) error {
-	c.Lock()
-	defer c.Unlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
 	cmdArgs := make(map[string]string)
 

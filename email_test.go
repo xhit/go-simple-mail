@@ -51,13 +51,13 @@ func TestSendRace(t *testing.T) {
 		SetSubject("subject").
 		SetBody(TextPlain, "body")
 
-	// the smtpClient2 has not timeout, so the err, if exists, should be the last message sent in listener service, otherwise is an error
+	// the smtpClient2 has not timeout
 	err = msg.Send(smtpClient2)
-	if err != nil && err.Error() != "221 after quit" {
+	if err != nil {
 		log.Fatalf("couldn't send: %s", err.Error())
 	}
 
-	// the smtpClient send to listener with the last response is after SendTimeout, so when this error is retorned so test is success.
+	// the smtpClient send to listener with the last response is after SendTimeout, so when this error is returned the test succeed.
 	err = msg.Send(smtpClient)
 	if err != nil && err.Error() != "Mail Error: SMTP Send timed out" {
 		log.Fatalf("couldn't send: %s", err.Error())
@@ -85,7 +85,7 @@ func startService(port int, responses []string, timeout time.Duration) {
 func respond(conn net.Conn, responses []string, timeout time.Duration) {
 	buf := make([]byte, 1024)
 	for i, resp := range responses {
-		conn.Write([]byte(resp + "\n"))
+		write(conn, resp)
 		n, err := conn.Read(buf)
 		if err != nil {
 			log.Println("couldn't read data")
@@ -98,10 +98,19 @@ func respond(conn net.Conn, responses []string, timeout time.Duration) {
 			break
 		}
 	}
+
+	// if timeout, sleep for that time, otherwise sent a 250 OK
 	if timeout > 0 {
 		time.Sleep(timeout)
+	} else {
+		write(conn, "250 OK")
 	}
 
-	conn.Write([]byte(`221 after quit` + "\n"))
 	conn.Close()
+	fmt.Print("\n\n")
+}
+
+func write(conn net.Conn, command string) {
+	log.Printf("WRITE:%s", command)
+	conn.Write([]byte(command + "\n"))
 }
