@@ -84,7 +84,7 @@ func startService(port int, responses []string, timeout time.Duration) {
 
 func respond(conn net.Conn, responses []string, timeout time.Duration) {
 	buf := make([]byte, 1024)
-	for i, resp := range responses {
+	for _, resp := range responses {
 		write(conn, resp)
 		n, err := conn.Read(buf)
 		if err != nil {
@@ -93,10 +93,6 @@ func respond(conn net.Conn, responses []string, timeout time.Duration) {
 		}
 		readStr := string(buf[:n])
 		log.Printf("READ:%s", string(readStr))
-
-		if i == len(responses)-1 {
-			break
-		}
 	}
 
 	// if timeout, sleep for that time, otherwise sent a 250 OK
