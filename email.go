@@ -10,6 +10,7 @@ import (
 	"net/textproto"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/toorop/go-dkim"
@@ -55,6 +56,7 @@ type SMTPServer struct {
 
 // SMTPClient represents a SMTP Client for send email
 type SMTPClient struct {
+	mu          sync.Mutex
 	Client      *smtpClient
 	KeepAlive   bool
 	SendTimeout time.Duration
@@ -865,21 +867,29 @@ func (server *SMTPServer) Connect() (*SMTPClient, error) {
 
 // Reset send RSET command to smtp client
 func (smtpClient *SMTPClient) Reset() error {
+	smtpClient.mu.Lock()
+	defer smtpClient.mu.Unlock()
 	return smtpClient.Client.reset()
 }
 
 // Noop send NOOP command to smtp client
 func (smtpClient *SMTPClient) Noop() error {
+	smtpClient.mu.Lock()
+	defer smtpClient.mu.Unlock()
 	return smtpClient.Client.noop()
 }
 
 // Quit send QUIT command to smtp client
 func (smtpClient *SMTPClient) Quit() error {
+	smtpClient.mu.Lock()
+	defer smtpClient.mu.Unlock()
 	return smtpClient.Client.quit()
 }
 
 // Close closes the connection
 func (smtpClient *SMTPClient) Close() error {
+	smtpClient.mu.Lock()
+	defer smtpClient.mu.Unlock()
 	return smtpClient.Client.close()
 }
 
@@ -909,14 +919,14 @@ func send(from string, to []string, msg string, client *SMTPClient) error {
 			if client.SendTimeout != 0 {
 				smtpSendChannel = make(chan error, 1)
 
-				go func(from string, to []string, msg string, c *smtpClient) {
-					smtpSendChannel <- sendMailProcess(from, to, msg, c)
-				}(from, to, msg, client.Client)
+				go func(from string, to []string, msg string, client *SMTPClient) {
+					smtpSendChannel <- sendMailProcess(from, to, msg, client)
+				}(from, to, msg, client)
 			}
 
 			if client.SendTimeout == 0 {
 				// no SendTimeout, just fire the sendMailProcess
-				return sendMailProcess(from, to, msg, client.Client)
+				return sendMailProcess(from, to, msg, client)
 			}
 
 			// get the send result or timeout result, which ever happens first
@@ -928,35 +938,36 @@ func send(from string, to []string, msg string, client *SMTPClient) error {
 				checkKeepAlive(client)
 				return errors.New("Mail Error: SMTP Send timed out")
 			}
-
 		}
 	}
 
 	return errors.New("Mail Error: No SMTP Client Provided")
 }
 
-func sendMailProcess(from string, to []string, msg string, c *smtpClient) error {
+func sendMailProcess(from string, to []string, msg string, c *SMTPClient) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
 	cmdArgs := make(map[string]string)
 
-	if _, ok := c.ext["SIZE"]; ok {
+	if _, ok := c.Client.ext["SIZE"]; ok {
 		cmdArgs["SIZE"] = strconv.Itoa(len(msg))
 	}
 
 	// Set the sender
-	if err := c.mail(from, cmdArgs); err != nil {
+	if err := c.Client.mail(from, cmdArgs); err != nil {
 		return err
 	}
 
 	// Set the recipients
 	for _, address := range to {
-		if err := c.rcpt(address); err != nil {
+		if err := c.Client.rcpt(address); err != nil {
 			return err
 		}
 	}
 
 	// Send the data command
-	w, err := c.data()
+	w, err := c.Client.data()
 	if err != nil {
 		return err
 	}
@@ -978,9 +989,9 @@ func sendMailProcess(from string, to []string, msg string, c *smtpClient) error 
 // check if keepAlive for close or reset
 func checkKeepAlive(client *SMTPClient) {
 	if client.KeepAlive {
-		client.Client.reset()
+		client.Reset()
 	} else {
-		client.Client.quit()
-		client.Client.close()
+		client.Quit()
+		client.Close()
 	}
 }
