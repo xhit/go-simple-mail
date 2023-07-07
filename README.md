@@ -77,6 +77,7 @@ Go Simple Mail supports:
 - Support text/calendar content type body (since v2.11.0)
 - Support add a List-Unsubscribe header (since v2.11.0)
 - Support to add a DKIM signarure (since v2.11.0)
+- Support to send using custom connection, ideal for proxy (since v2.15.0)
 
 ## Documentation
 
@@ -102,7 +103,7 @@ package main
 import (
 	"log"
 
-	"github.com/xhit/go-simple-mail/v2"
+	mail "github.com/xhit/go-simple-mail/v2"
 	"github.com/toorop/go-dkim"
 )
 
@@ -267,6 +268,77 @@ func main() {
 			log.Println("Email Sent")
 		}
 	}
+```
+
+# Send with custom connection
+
+It's possible to use a custom connection with custom dieler, like a dialer that uses a proxy server, etc...
+
+With this, these servers params are ignored: `Host`, `Port`. You have total control of the connection.
+
+Example using a conn for proxy:
+
+```go
+package main
+
+import (
+	"crypto/tls"
+	"fmt"
+	"log"
+	"net"
+
+	mail "github.com/xhit/go-simple-mail/v2"
+	"golang.org/x/net/proxy"
+)
+
+func main() {
+	server := mail.NewSMTPClient()
+
+	host := "smtp.example.com"
+	port := 587
+	proxyAddr := "proxy.server"
+
+	conn, err := getCustomConnWithProxy(proxyAddr, host, port)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	server.Username = "test@example.com"
+	server.Password = "examplepass"
+	server.Encryption = mail.EncryptionSTARTTLS
+	server.CustomConn = conn
+
+	smtpClient, err := server.Connect()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	email := mail.NewMSG()
+
+	err = email.SetFrom("From Example <nube@example.com>").AddTo("xhit@example.com").Send(smtpClient)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+}
+
+func getCustomConnWithProxy(proxyAddr, host string, port int) (net.Conn, error) {
+	dial, err := proxy.SOCKS5("tcp", proxyAddr, nil, proxy.Direct)
+	if err != nil {
+		return nil, err
+	}
+
+	dialer, err := dial.Dial("tcp", fmt.Sprintf("%s:%d", host, port))
+	if err != nil {
+		return nil, err
+	}
+
+	conf := &tls.Config{ServerName: host}
+	conn := tls.Client(dialer, conf)
+
+	return conn, nil
+}
+
 ```
 
 ## More examples
