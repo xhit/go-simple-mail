@@ -384,18 +384,18 @@ func addAddress(addressList []string, address string, allowDuplicateAddress bool
 	return append(addressList, address), nil
 }
 
-type priority int
+type Priority int
 
 const (
-	// PriorityLow sets the email priority to Low
-	PriorityLow priority = iota
-	// PriorityHigh sets the email priority to High
+	// PriorityLow sets the email Priority to Low
+	PriorityLow Priority = iota
+	// PriorityHigh sets the email Priority to High
 	PriorityHigh
 )
 
-// SetPriority sets the email message priority. Use with
+// SetPriority sets the email message Priority. Use with
 // either "High" or "Low".
-func (email *Email) SetPriority(priority priority) *Email {
+func (email *Email) SetPriority(priority Priority) *Email {
 	if email.Error != nil {
 		return email
 	}
