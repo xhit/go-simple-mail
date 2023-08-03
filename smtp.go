@@ -248,7 +248,7 @@ func (c *smtpClient) rcpt(to string) error {
 	if err := validateLine(to); err != nil {
 		return err
 	}
-	_, _, err := c.cmd(25, "RCPT TO:<%s>", to)
+	_, _, err := c.cmd(25, "RCPT TO:%s", to)
 	return err
 }
 

@@ -34,6 +34,7 @@ type Email struct {
 	DkimMsg               string
 	AllowDuplicateAddress bool
 	AddBccToHeader        bool
+	dsn                   string
 }
 
 /*
@@ -613,6 +614,18 @@ func (email *Email) AddAlternativeData(contentType ContentType, body []byte) *Em
 	return email
 }
 
+// SetDSN sets the delivery status notification
+func (email *Email) SetDSN(dsn string) *Email {
+	if email.Error != nil {
+		return email
+	}
+
+	email.dsn = dsn
+
+	return email
+}
+
+
 // GetFrom returns the sender of the email, if any
 func (email *Email) GetFrom() string {
 	from := email.returnPath
@@ -699,7 +712,7 @@ func (email *Email) SendEnvelopeFrom(from string, client *SMTPClient) error {
 		from = email.from
 	}
 
-	if len(email.recipients) < 1 {
+	if len(email.getRecipientsWithDsn(client)) < 1 {
 		return errors.New("Mail Error: No recipient specified")
 	}
 
@@ -710,7 +723,7 @@ func (email *Email) SendEnvelopeFrom(from string, client *SMTPClient) error {
 		msg = email.GetMessage()
 	}
 
-	return send(from, email.recipients, msg, client)
+	return send(from, email.getRecipientsWithDsn(client), msg, client)
 }
 
 // dial connects to the smtp server with the request encryption type
@@ -1001,3 +1014,19 @@ func checkKeepAlive(client *SMTPClient) {
 		client.Close()
 	}
 }
+
+// GetRecipientsWithDSN returns a slice of recipients emails with DSN appended to the end
+func (email *Email) getRecipientsWithDsn(client *SMTPClient) []string {
+	_, foundDSNExtension := client.Client.ext["DSN"]
+	if !foundDSNExtension || email.headers.Get("Return-Receipt-To") == "" {
+		return email.recipients
+	}
+
+	recipientsWithDSN := make([]string, len(email.recipients))
+	for i, recipient := range email.recipients {
+		recipientsWithDSN[i] = recipient + " " + email.dsn
+	}
+
+	return recipientsWithDSN
+}
+
