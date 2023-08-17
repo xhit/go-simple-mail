@@ -79,6 +79,7 @@ Go Simple Mail supports:
 - Support to add a DKIM signarure (since v2.11.0)
 - Support to send using custom connection, ideal for proxy (since v2.15.0)
 - Support Delivery Status Notification (DSN) (since v2.16.0)
+- Support text/x-amp-html content type body (since v2.16.0)
 
 ## Documentation
 
