@@ -127,9 +127,11 @@ const (
 	TextHTML
 	// TextCalendar sets body type to text/calendar in message body
 	TextCalendar
+	// TextAMP sets body type to text/x-amp-html in message body
+	TextAMP
 )
 
-var contentTypes = [...]string{"text/plain", "text/html", "text/calendar"}
+var contentTypes = [...]string{"text/plain", "text/html", "text/calendar", "text/x-amp-html"}
 
 func (contentType ContentType) string() string {
 	return contentTypes[contentType]
