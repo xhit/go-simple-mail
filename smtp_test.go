@@ -786,7 +786,7 @@ func (c *smtpClient) verify(addr string) error {
 	if err := validateLine(addr); err != nil {
 		return err
 	}
-	if err := c.hello(); err != nil {
+	if err := c.hello(false); err != nil {
 		return err
 	}
 	_, _, err := c.cmd(250, "VRFY %s", addr)
