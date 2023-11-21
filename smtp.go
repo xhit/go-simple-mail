@@ -65,8 +65,8 @@ func (c *smtpClient) close() error {
 }
 
 // hello runs a hello exchange if needed.
-func (c *smtpClient) hello() error {
-	if !c.didHello {
+func (c *smtpClient) hello(forced bool) error {
+	if forced || !c.didHello {
 		c.didHello = true
 		err := c.ehlo()
 		if err != nil {
@@ -89,7 +89,7 @@ func (c *smtpClient) hi(localName string) error {
 		return errors.New("smtp: Hello called after other methods")
 	}
 	c.localName = localName
-	return c.hello()
+	return c.hello(false)
 }
 
 // cmd is a convenience function that sends a command and returns the response
@@ -142,7 +142,7 @@ func (c *smtpClient) ehlo() error {
 // startTLS sends the STARTTLS command and encrypts all further communication.
 // Only servers that advertise the STARTTLS extension support this function.
 func (c *smtpClient) startTLS(config *tls.Config) error {
-	if err := c.hello(); err != nil {
+	if err := c.hello(false); err != nil {
 		return err
 	}
 	_, _, err := c.cmd(220, "STARTTLS")
@@ -152,14 +152,14 @@ func (c *smtpClient) startTLS(config *tls.Config) error {
 	c.conn = tls.Client(c.conn, config)
 	c.text = textproto.NewConn(c.conn)
 	c.tls = true
-	return c.ehlo()
+	return c.hello(true)
 }
 
 // authenticate authenticates a client using the provided authentication mechanism.
 // A failed authentication closes the connection.
 // Only servers that advertise the AUTH extension support this function.
 func (c *smtpClient) authenticate(a auth) error {
-	if err := c.hello(); err != nil {
+	if err := c.hello(false); err != nil {
 		return err
 	}
 	encoding := base64.StdEncoding
@@ -218,7 +218,7 @@ func (c *smtpClient) mail(from string, extArgs ...map[string]string) error {
 	if err := validateLine(from); err != nil {
 		return err
 	}
-	if err := c.hello(); err != nil {
+	if err := c.hello(false); err != nil {
 		return err
 	}
 	cmdStr := "MAIL FROM:<%s>"
@@ -280,7 +280,7 @@ func (c *smtpClient) data() (io.WriteCloser, error) {
 // extension also returns a string that contains any parameters the
 // server specifies for the extension.
 func (c *smtpClient) extension(ext string) (bool, string) {
-	if err := c.hello(); err != nil {
+	if err := c.hello(false); err != nil {
 		return false, ""
 	}
 	if c.ext == nil {
@@ -294,7 +294,7 @@ func (c *smtpClient) extension(ext string) (bool, string) {
 // reset sends the RSET command to the server, aborting the current mail
 // transaction.
 func (c *smtpClient) reset() error {
-	if err := c.hello(); err != nil {
+	if err := c.hello(false); err != nil {
 		return err
 	}
 	_, _, err := c.cmd(250, "RSET")
@@ -304,7 +304,7 @@ func (c *smtpClient) reset() error {
 // noop sends the NOOP command to the server. It does nothing but check
 // that the connection to the server is okay.
 func (c *smtpClient) noop() error {
-	if err := c.hello(); err != nil {
+	if err := c.hello(false); err != nil {
 		return err
 	}
 	_, _, err := c.cmd(250, "NOOP")
@@ -313,7 +313,7 @@ func (c *smtpClient) noop() error {
 
 // quit sends the QUIT command and closes the connection to the server.
 func (c *smtpClient) quit() error {
-	if err := c.hello(); err != nil {
+	if err := c.hello(false); err != nil {
 		return err
 	}
 	_, _, err := c.cmd(221, "QUIT")
