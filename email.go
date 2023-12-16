@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"net/mail"
 	"net/textproto"
 	"strconv"
 	"strings"
@@ -315,6 +314,8 @@ func (email *Email) AddBcc(addresses ...string) *Email {
 
 // AddAddresses allows you to add addresses to the specified address header.
 func (email *Email) AddAddresses(header string, addresses ...string) *Email {
+	var err error
+
 	if email.Error != nil {
 		return email
 	}
@@ -334,21 +335,7 @@ func (email *Email) AddAddresses(header string, addresses ...string) *Email {
 	}
 
 	// check to see if the addresses are valid
-	for i := range addresses {
-		var address = new(mail.Address)
-		var err error
-
-		// ignore parse the address if empty
-		if len(addresses[i]) > 0 {
-			address, err = mail.ParseAddress(addresses[i])
-			if err != nil {
-				email.Error = errors.New("Mail Error: " + err.Error() + "; Header: [" + header + "] Address: [" + addresses[i] + "]")
-				return email
-			}
-		} else {
-			continue
-		}
-
+	for i, address := range addresses {
 		// check for more than one address
 		switch {
 		case header == "Sender" && len(email.sender) > 0:
@@ -370,16 +357,16 @@ func (email *Email) AddAddresses(header string, addresses ...string) *Email {
 			if len(email.from) > 0 && header == "From" {
 				email.headers.Del("From")
 			}
-			email.from = address.Address
+			email.from = address
 		case "Sender":
-			email.sender = address.Address
+			email.sender = address
 		case "Reply-To":
-			email.replyTo = address.Address
+			email.replyTo = address
 		case "Return-Path":
-			email.returnPath = address.Address
+			email.returnPath = address
 		default:
 			// check that the address was added to the recipients list
-			email.recipients, err = addAddress(email.recipients, address.Address, email.AllowDuplicateAddress)
+			email.recipients, err = addAddress(email.recipients, address, email.AllowDuplicateAddress)
 			if err != nil {
 				email.Error = errors.New("Mail Error: " + err.Error() + "; Header: [" + header + "] Address: [" + addresses[i] + "]")
 				return email
@@ -396,13 +383,13 @@ func (email *Email) AddAddresses(header string, addresses ...string) *Email {
 
 		// add Bcc only if AddBccToHeader is true
 		if header == "Bcc" && email.AddBccToHeader {
-			email.headers.Add(header, address.String())
+			email.headers.Add(header, address)
 		}
 
 		// add all addresses to the headers except for Bcc and Return-Path
 		if header != "Bcc" && header != "Return-Path" {
 			// add the address to the headers
-			email.headers.Add(header, address.String())
+			email.headers.Add(header, address)
 		}
 	}
 
