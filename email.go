@@ -18,21 +18,25 @@ import (
 
 // Email represents an email message.
 type Email struct {
-	from                      string
-	sender                    string
-	replyTo                   string
-	returnPath                string
-	recipients                []string
-	headers                   textproto.MIMEHeader
-	parts                     []part
-	attachments               []*File
-	inlines                   []*File
-	Charset                   string
-	Encoding                  encoding
-	Error                     error
-	SMTPServer                *smtpClient
-	DkimMsg                   string
-	AllowDuplicateAddress     bool
+	from                  string
+	sender                string
+	replyTo               string
+	returnPath            string
+	recipients            []string
+	headers               textproto.MIMEHeader
+	parts                 []part
+	attachments           []*File
+	inlines               []*File
+	Charset               string
+	Encoding              encoding
+	Error                 error
+	SMTPServer            *smtpClient
+	DkimMsg               string
+	AllowDuplicateAddress bool
+
+	// AllowEmptyAttachments if enabled, allows you you attach empty
+	// items, a file without any associated data
+	AllowEmptyAttachments     bool
 	AddBccToHeader            bool
 	preserveOriginalRecipient bool
 	dsn                       []DSN
