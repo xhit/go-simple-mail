@@ -59,7 +59,7 @@ func (email *Email) Attach(file *File) *Email {
 		}
 	}
 
-	attachTy, err := getAttachmentType(file)
+	attachTy, err := getAttachmentType(file, email.AllowEmptyAttachments)
 	if err != nil {
 		email.Error = errors.New("Mail Error: Failed to add attachment with following error: " + err.Error())
 		return email
@@ -80,7 +80,7 @@ func (email *Email) Attach(file *File) *Email {
 	return email
 }
 
-func getAttachmentType(file *File) (attachType, error) {
+func getAttachmentType(file *File, allowEmptyAttachments bool) (attachType, error) {
 	// 1- data
 	// 2- base64
 	// 3- file
@@ -106,6 +106,10 @@ func getAttachmentType(file *File) (attachType, error) {
 	// check if file
 	if len(file.FilePath) > 0 {
 		return attachFile, nil
+	}
+
+	if allowEmptyAttachments && len(file.Name) != 0 {
+		return attachData, nil
 	}
 
 	return 0, errors.New("empty attachment")
