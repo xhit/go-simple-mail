@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/mail"
 	"net/textproto"
 	"strconv"
 	"strings"
@@ -17,25 +18,30 @@ import (
 
 // Email represents an email message.
 type Email struct {
-	from                  string
-	sender                string
-	replyTo               string
-	returnPath            string
-	recipients            []string
-	headers               textproto.MIMEHeader
-	parts                 []part
-	attachments           []*File
-	inlines               []*File
-	Charset               string
-	Encoding              encoding
-	Error                 error
-	SMTPServer            *smtpClient
-	DkimMsg               string
-	AllowDuplicateAddress bool
+	from        string
+	sender      string
+	replyTo     string
+	returnPath  string
+	recipients  []string
+	headers     textproto.MIMEHeader
+	parts       []part
+	attachments []*File
+	inlines     []*File
+	Charset     string
+	Encoding    encoding
+	Error       error
+	SMTPServer  *smtpClient
+	DkimMsg     string
+
+	// UseProvidedAddress if set to true will disable any parsing and
+	// validation of addresses and uses the address provided by the user
+	// without any modifications
+	UseProvidedAddress bool
 
 	// AllowEmptyAttachments if enabled, allows you you attach empty
 	// items, a file without any associated data
 	AllowEmptyAttachments     bool
+	AllowDuplicateAddress     bool
 	AddBccToHeader            bool
 	preserveOriginalRecipient bool
 	dsn                       []DSN
@@ -336,6 +342,24 @@ func (email *Email) AddAddresses(header string, addresses ...string) *Email {
 
 	// check to see if the addresses are valid
 	for i, address := range addresses {
+		fullAddress := address
+
+		// ignore empty addresses
+		if len(addresses[i]) > 0 {
+			if !email.UseProvidedAddress {
+				parsed, err := mail.ParseAddress(addresses[i])
+				if err != nil {
+					email.Error = errors.New("Mail Error: " + err.Error() + "; Header: [" + header + "] Address: [" + addresses[i] + "]")
+					return email
+				}
+
+				address = parsed.Address
+				fullAddress = parsed.String()
+			}
+		} else {
+			continue
+		}
+
 		// check for more than one address
 		switch {
 		case header == "Sender" && len(email.sender) > 0:
@@ -383,13 +407,13 @@ func (email *Email) AddAddresses(header string, addresses ...string) *Email {
 
 		// add Bcc only if AddBccToHeader is true
 		if header == "Bcc" && email.AddBccToHeader {
-			email.headers.Add(header, address)
+			email.headers.Add(header, fullAddress)
 		}
 
 		// add all addresses to the headers except for Bcc and Return-Path
 		if header != "Bcc" && header != "Return-Path" {
 			// add the address to the headers
-			email.headers.Add(header, address)
+			email.headers.Add(header, fullAddress)
 		}
 	}
 
