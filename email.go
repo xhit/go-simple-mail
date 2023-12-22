@@ -18,25 +18,30 @@ import (
 
 // Email represents an email message.
 type Email struct {
-	from                  string
-	sender                string
-	replyTo               string
-	returnPath            string
-	recipients            []string
-	headers               textproto.MIMEHeader
-	parts                 []part
-	attachments           []*File
-	inlines               []*File
-	Charset               string
-	Encoding              encoding
-	Error                 error
-	SMTPServer            *smtpClient
-	DkimMsg               string
-	AllowDuplicateAddress bool
+	from        string
+	sender      string
+	replyTo     string
+	returnPath  string
+	recipients  []string
+	headers     textproto.MIMEHeader
+	parts       []part
+	attachments []*File
+	inlines     []*File
+	Charset     string
+	Encoding    encoding
+	Error       error
+	SMTPServer  *smtpClient
+	DkimMsg     string
+
+	// UseProvidedAddress if set to true will disable any parsing and
+	// validation of addresses and uses the address provided by the user
+	// without any modifications
+	UseProvidedAddress bool
 
 	// AllowEmptyAttachments if enabled, allows you you attach empty
 	// items, a file without any associated data
 	AllowEmptyAttachments     bool
+	AllowDuplicateAddress     bool
 	AddBccToHeader            bool
 	preserveOriginalRecipient bool
 	dsn                       []DSN
@@ -315,6 +320,8 @@ func (email *Email) AddBcc(addresses ...string) *Email {
 
 // AddAddresses allows you to add addresses to the specified address header.
 func (email *Email) AddAddresses(header string, addresses ...string) *Email {
+	var err error
+
 	if email.Error != nil {
 		return email
 	}
@@ -334,16 +341,20 @@ func (email *Email) AddAddresses(header string, addresses ...string) *Email {
 	}
 
 	// check to see if the addresses are valid
-	for i := range addresses {
-		var address = new(mail.Address)
-		var err error
+	for i, address := range addresses {
+		fullAddress := address
 
-		// ignore parse the address if empty
+		// ignore empty addresses
 		if len(addresses[i]) > 0 {
-			address, err = mail.ParseAddress(addresses[i])
-			if err != nil {
-				email.Error = errors.New("Mail Error: " + err.Error() + "; Header: [" + header + "] Address: [" + addresses[i] + "]")
-				return email
+			if !email.UseProvidedAddress {
+				parsed, err := mail.ParseAddress(addresses[i])
+				if err != nil {
+					email.Error = errors.New("Mail Error: " + err.Error() + "; Header: [" + header + "] Address: [" + addresses[i] + "]")
+					return email
+				}
+
+				address = parsed.Address
+				fullAddress = parsed.String()
 			}
 		} else {
 			continue
@@ -370,16 +381,16 @@ func (email *Email) AddAddresses(header string, addresses ...string) *Email {
 			if len(email.from) > 0 && header == "From" {
 				email.headers.Del("From")
 			}
-			email.from = address.Address
+			email.from = address
 		case "Sender":
-			email.sender = address.Address
+			email.sender = address
 		case "Reply-To":
-			email.replyTo = address.Address
+			email.replyTo = address
 		case "Return-Path":
-			email.returnPath = address.Address
+			email.returnPath = address
 		default:
 			// check that the address was added to the recipients list
-			email.recipients, err = addAddress(email.recipients, address.Address, email.AllowDuplicateAddress)
+			email.recipients, err = addAddress(email.recipients, address, email.AllowDuplicateAddress)
 			if err != nil {
 				email.Error = errors.New("Mail Error: " + err.Error() + "; Header: [" + header + "] Address: [" + addresses[i] + "]")
 				return email
@@ -396,13 +407,13 @@ func (email *Email) AddAddresses(header string, addresses ...string) *Email {
 
 		// add Bcc only if AddBccToHeader is true
 		if header == "Bcc" && email.AddBccToHeader {
-			email.headers.Add(header, address.String())
+			email.headers.Add(header, fullAddress)
 		}
 
 		// add all addresses to the headers except for Bcc and Return-Path
 		if header != "Bcc" && header != "Return-Path" {
 			// add the address to the headers
-			email.headers.Add(header, address.String())
+			email.headers.Add(header, fullAddress)
 		}
 	}
 
