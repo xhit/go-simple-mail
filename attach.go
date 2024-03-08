@@ -16,6 +16,8 @@ import (
 type File struct {
 	// FilePath is the path of the file to attach.
 	FilePath string
+	// ContentID is the contentID of the attachment. Optional. Used instead of Name to look up inline attachment in the body if provided.
+	ContentID string
 	// Name is the name of file in attachment. Required for Data and B64Data. Optional for FilePath.
 	Name string
 	// MimeType of attachment. If empty then is obtained from Name (if not empty) or FilePath. If cannot obtained, application/octet-stream is set.

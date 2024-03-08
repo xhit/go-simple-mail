@@ -238,7 +238,11 @@ func (msg *message) addFiles(files []*File, inline bool) {
 		header.Set("Content-Transfer-Encoding", encoding.string())
 		if inline {
 			header.Set("Content-Disposition", "inline;\n \tfilename=\""+encodeHeader(escapeQuotes(file.Name), msg.charset, 10)+`"`)
-			header.Set("Content-ID", "<"+msg.getCID(file.Name)+">")
+			if len(file.ContentID) > 0 {
+				header.Set("Content-ID", "<"+msg.getCID(file.ContentID)+">")
+			} else {
+				header.Set("Content-ID", "<"+msg.getCID(file.Name)+">")
+			}
 		} else {
 			header.Set("Content-Disposition", "attachment;\n \tfilename=\""+encodeHeader(escapeQuotes(file.Name), msg.charset, 10)+`"`)
 		}
