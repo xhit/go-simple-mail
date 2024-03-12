@@ -18,20 +18,21 @@ import (
 
 // Email represents an email message.
 type Email struct {
-	from        string
-	sender      string
-	replyTo     string
-	returnPath  string
-	recipients  []string
-	headers     textproto.MIMEHeader
-	parts       []part
-	attachments []*File
-	inlines     []*File
-	Charset     string
-	Encoding    encoding
-	Error       error
-	SMTPServer  *smtpClient
-	DkimMsg     string
+	from           string
+	sender         string
+	replyTo        string
+	returnPath     string
+	recipients     []string
+	headers        textproto.MIMEHeader
+	parts          []part
+	attachments    []*File
+	inlines        []*File
+	Charset        string
+	Encoding       encoding
+	HeaderEncoding headerEncoding
+	Error          error
+	SMTPServer     *smtpClient
+	DkimMsg        string
 
 	// UseProvidedAddress if set to true will disable any parsing and
 	// validation of addresses and uses the address provided by the user
@@ -109,6 +110,23 @@ var encryptionTypes = [...]string{"None", "SSL/TLS", "STARTTLS", "SSL/TLS", "STA
 func (encryption Encryption) String() string {
 	return encryptionTypes[encryption]
 }
+
+type headerEncoding int
+
+const (
+	// HeaderEncodingNone turns off encoding on the message headers
+	// https://www.rfc-editor.org/rfc/rfc6530#section-7.1
+	HeaderEncodingNone headerEncoding = iota
+
+	// TODO: Add Base64 encoding
+	// HeaderEncodingBase64 sets the message header encoding to base64
+	// https://www.rfc-editor.org/rfc/rfc2045#section-6.8
+	// HeaderEncodingBase64
+
+	// HeaderEncodingQ sets the message header encoding to Q encoding
+	// https://www.rfc-editor.org/rfc/rfc2047#section-4.2
+	HeaderEncodingQ
+)
 
 type encoding int
 
@@ -205,9 +223,10 @@ func (dsn DSN) String() string {
 // NewMSG creates a new email. It uses UTF-8 by default. All charsets: http://webcheatsheet.com/HTML/character_sets_list.php
 func NewMSG() *Email {
 	email := &Email{
-		headers:  make(textproto.MIMEHeader),
-		Charset:  "UTF-8",
-		Encoding: EncodingQuotedPrintable,
+		headers:        make(textproto.MIMEHeader),
+		Charset:        "UTF-8",
+		Encoding:       EncodingQuotedPrintable,
+		HeaderEncoding: HeaderEncodingQ,
 	}
 
 	email.AddHeader("MIME-Version", "1.0")
