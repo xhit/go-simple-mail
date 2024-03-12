@@ -3,6 +3,7 @@ package mail
 import (
 	"bytes"
 	"encoding/base64"
+	"fmt"
 	"io"
 	"mime/multipart"
 	"mime/quotedprintable"
@@ -14,42 +15,35 @@ import (
 )
 
 type message struct {
-	headers  textproto.MIMEHeader
-	body     *bytes.Buffer
-	writers  []*multipart.Writer
-	parts    uint8
-	cids     map[string]string
-	charset  string
-	encoding encoding
+	headers        textproto.MIMEHeader
+	body           *bytes.Buffer
+	writers        []*multipart.Writer
+	parts          uint8
+	cids           map[string]string
+	charset        string
+	encoding       encoding
+	headerEncoding encoding // Only None and Q are currently supported
 }
 
 func newMessage(email *Email) *message {
 	return &message{
-		headers:  email.headers,
-		body:     new(bytes.Buffer),
-		cids:     make(map[string]string),
-		charset:  email.Charset,
-		encoding: email.Encoding}
+		headers:        email.headers,
+		body:           new(bytes.Buffer),
+		cids:           make(map[string]string),
+		charset:        email.Charset,
+		encoding:       email.Encoding,
+		headerEncoding: email.HeaderEncoding}
 }
 
-func encodeHeader(text string, charset string, usedChars int) string {
+func encodeHeader(text string, charset string, encoding encoding, usedChars int) string {
 	// create buffer
 	buf := new(bytes.Buffer)
 
 	// encode
-	encoder := newEncoder(buf, charset, usedChars)
+	encoder := newEncoder(buf, charset, encoding, usedChars)
 	encoder.encode([]byte(text))
 
 	return buf.String()
-
-	/*
-			switch encoding {
-			case EncodingBase64:
-				return mime.BEncoding.Encode(charset, text)
-			default:
-				return mime.QEncoding.Encode(charset, text)
-		}
-	*/
 }
 
 // getHeaders returns the message headers
@@ -61,7 +55,8 @@ func (msg *message) getHeaders() (headers string) {
 
 	// encode and combine the headers
 	for header, values := range msg.headers {
-		headers += header + ": " + encodeHeader(strings.Join(values, ", "), msg.charset, len(header)+2) + "\r\n"
+		encoded := encodeHeader(strings.Join(values, ", "), msg.charset, msg.encoding, len(header)+2)
+		headers += header + ": " + encoded + "\r\n"
 	}
 
 	headers = headers + "\r\n"
@@ -234,17 +229,23 @@ func (msg *message) addFiles(files []*File, inline bool) {
 	encoding := EncodingBase64
 	for _, file := range files {
 		header := make(textproto.MIMEHeader)
-		header.Set("Content-Type", file.MimeType+";\n \tname=\""+encodeHeader(escapeQuotes(file.Name), msg.charset, 6)+`"`)
+		header.Set("Content-Type",
+			fmt.Sprintf("%s;\n \tname=\"%s\"",
+				file.MimeType,
+				encodeHeader(escapeQuotes(file.Name), msg.charset, msg.encoding, 6)))
 		header.Set("Content-Transfer-Encoding", encoding.string())
+
+		encodedFilename := encodeHeader(escapeQuotes(file.Name), msg.charset, msg.encoding, 10)
+
 		if inline {
-			header.Set("Content-Disposition", "inline;\n \tfilename=\""+encodeHeader(escapeQuotes(file.Name), msg.charset, 10)+`"`)
+			header.Set("Content-Disposition", "inline;\n \tfilename=\""+encodedFilename+`"`)
 			if len(file.ContentID) > 0 {
 				header.Set("Content-ID", "<"+msg.getCID(file.ContentID)+">")
 			} else {
 				header.Set("Content-ID", "<"+msg.getCID(file.Name)+">")
 			}
 		} else {
-			header.Set("Content-Disposition", "attachment;\n \tfilename=\""+encodeHeader(escapeQuotes(file.Name), msg.charset, 10)+`"`)
+			header.Set("Content-Disposition", "attachment;\n \tfilename=\""+encodedFilename+`"`)
 		}
 
 		msg.write(header, file.Data, encoding)

@@ -18,20 +18,21 @@ import (
 
 // Email represents an email message.
 type Email struct {
-	from        string
-	sender      string
-	replyTo     string
-	returnPath  string
-	recipients  []string
-	headers     textproto.MIMEHeader
-	parts       []part
-	attachments []*File
-	inlines     []*File
-	Charset     string
-	Encoding    encoding
-	Error       error
-	SMTPServer  *smtpClient
-	DkimMsg     string
+	from           string
+	sender         string
+	replyTo        string
+	returnPath     string
+	recipients     []string
+	headers        textproto.MIMEHeader
+	parts          []part
+	attachments    []*File
+	inlines        []*File
+	Charset        string
+	Encoding       encoding
+	HeaderEncoding encoding // Only None and Q are currently supported
+	Error          error
+	SMTPServer     *smtpClient
+	DkimMsg        string
 
 	// UseProvidedAddress if set to true will disable any parsing and
 	// validation of addresses and uses the address provided by the user

@@ -15,6 +15,7 @@ import (
 type encoder struct {
 	w         *bufio.Writer
 	charset   string
+	encoding  encoding
 	usedChars int
 }
 
@@ -22,8 +23,8 @@ type encoder struct {
 // parameter specifies the name of the character set of the text that will be
 // encoded. The u parameter indicates how many characters have been used
 // already.
-func newEncoder(w io.Writer, c string, u int) *encoder {
-	return &encoder{bufio.NewWriter(w), strings.ToUpper(c), u}
+func newEncoder(w io.Writer, c string, encoding encoding, u int) *encoder {
+	return &encoder{bufio.NewWriter(w), strings.ToUpper(c), encoding, u}
 }
 
 // encode encodes p using the "Q" encoding and writes it to the underlying
