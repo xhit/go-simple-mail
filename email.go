@@ -29,7 +29,7 @@ type Email struct {
 	inlines        []*File
 	Charset        string
 	Encoding       encoding
-	HeaderEncoding encoding // Only None and Q are currently supported
+	HeaderEncoding headerEncoding
 	Error          error
 	SMTPServer     *smtpClient
 	DkimMsg        string
@@ -110,6 +110,22 @@ var encryptionTypes = [...]string{"None", "SSL/TLS", "STARTTLS", "SSL/TLS", "STA
 func (encryption Encryption) String() string {
 	return encryptionTypes[encryption]
 }
+
+type headerEncoding int
+
+const (
+	// HeaderEncodingNone turns off encoding on the message headers
+	HeaderEncodingNone encoding = iota
+
+	// TODO: Add Base64 encoding
+	// HeaderEncodingBase64 sets the message header encoding to base64
+	// https://www.rfc-editor.org/rfc/rfc2045#section-6.8
+	// HeaderEncodingBase64
+
+	// HeaderEncodingQ sets the message header encoding to Q encoding
+	// https://www.rfc-editor.org/rfc/rfc2047#section-4.2
+	HeaderEncodingQ
+)
 
 type encoding int
 

@@ -15,7 +15,7 @@ import (
 type encoder struct {
 	w         *bufio.Writer
 	charset   string
-	encoding  encoding
+	encoding  headerEncoding
 	usedChars int
 }
 
@@ -23,7 +23,7 @@ type encoder struct {
 // parameter specifies the name of the character set of the text that will be
 // encoded. The u parameter indicates how many characters have been used
 // already.
-func newEncoder(w io.Writer, c string, encoding encoding, u int) *encoder {
+func newEncoder(w io.Writer, c string, encoding headerEncoding, u int) *encoder {
 	return &encoder{bufio.NewWriter(w), strings.ToUpper(c), encoding, u}
 }
 

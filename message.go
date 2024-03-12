@@ -22,7 +22,7 @@ type message struct {
 	cids           map[string]string
 	charset        string
 	encoding       encoding
-	headerEncoding encoding // Only None and Q are currently supported
+	headerEncoding headerEncoding // Only None and Q are currently supported
 }
 
 func newMessage(email *Email) *message {
@@ -35,7 +35,7 @@ func newMessage(email *Email) *message {
 		headerEncoding: email.HeaderEncoding}
 }
 
-func encodeHeader(text string, charset string, encoding encoding, usedChars int) string {
+func encodeHeader(text string, charset string, encoding headerEncoding, usedChars int) string {
 	// create buffer
 	buf := new(bytes.Buffer)
 
@@ -55,7 +55,7 @@ func (msg *message) getHeaders() (headers string) {
 
 	// encode and combine the headers
 	for header, values := range msg.headers {
-		encoded := encodeHeader(strings.Join(values, ", "), msg.charset, msg.encoding, len(header)+2)
+		encoded := encodeHeader(strings.Join(values, ", "), msg.charset, msg.headerEncoding, len(header)+2)
 		headers += header + ": " + encoded + "\r\n"
 	}
 
@@ -232,10 +232,10 @@ func (msg *message) addFiles(files []*File, inline bool) {
 		header.Set("Content-Type",
 			fmt.Sprintf("%s;\n \tname=\"%s\"",
 				file.MimeType,
-				encodeHeader(escapeQuotes(file.Name), msg.charset, msg.encoding, 6)))
+				encodeHeader(escapeQuotes(file.Name), msg.charset, msg.headerEncoding, 6)))
 		header.Set("Content-Transfer-Encoding", encoding.string())
 
-		encodedFilename := encodeHeader(escapeQuotes(file.Name), msg.charset, msg.encoding, 10)
+		encodedFilename := encodeHeader(escapeQuotes(file.Name), msg.charset, msg.headerEncoding, 10)
 
 		if inline {
 			header.Set("Content-Disposition", "inline;\n \tfilename=\""+encodedFilename+`"`)
