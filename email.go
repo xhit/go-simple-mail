@@ -115,7 +115,7 @@ type headerEncoding int
 
 const (
 	// HeaderEncodingNone turns off encoding on the message headers
-	HeaderEncodingNone encoding = iota
+	HeaderEncodingNone headerEncoding = iota
 
 	// TODO: Add Base64 encoding
 	// HeaderEncodingBase64 sets the message header encoding to base64
@@ -222,9 +222,10 @@ func (dsn DSN) String() string {
 // NewMSG creates a new email. It uses UTF-8 by default. All charsets: http://webcheatsheet.com/HTML/character_sets_list.php
 func NewMSG() *Email {
 	email := &Email{
-		headers:  make(textproto.MIMEHeader),
-		Charset:  "UTF-8",
-		Encoding: EncodingQuotedPrintable,
+		headers:        make(textproto.MIMEHeader),
+		Charset:        "UTF-8",
+		Encoding:       EncodingQuotedPrintable,
+		HeaderEncoding: HeaderEncodingQ,
 	}
 
 	email.AddHeader("MIME-Version", "1.0")

@@ -13,11 +13,11 @@ func TestWriter(t *testing.T) {
 
 func testWriter(t *testing.T, binary bool) {
 	utf8 := "utf-8"
-	qp := EncodingQuotedPrintable
+	qp := HeaderEncodingQ
 
 	tests := []struct {
 		charset   string
-		encoding  encoding
+		encoding  headerEncoding
 		usedChars int
 		in, want  string
 	}{
