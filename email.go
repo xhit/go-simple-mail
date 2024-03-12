@@ -115,6 +115,7 @@ type headerEncoding int
 
 const (
 	// HeaderEncodingNone turns off encoding on the message headers
+	// https://www.rfc-editor.org/rfc/rfc6530#section-7.1
 	HeaderEncodingNone headerEncoding = iota
 
 	// TODO: Add Base64 encoding
