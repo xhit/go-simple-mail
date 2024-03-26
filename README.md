@@ -225,7 +225,7 @@ func main() {
 		email.SetDkim(options)
 	}
 
-	// always check error after send
+	// always check error before send
 	if email.Error != nil{
 		log.Fatal(email.Error)
 	}
@@ -262,7 +262,7 @@ func main() {
 		// add inline
 		email.Attach(&mail.File{FilePath: "/path/to/image.png", Name:"Gopher.png", Inline: true})
 
-		// always check error after send
+		// always check error before send
 		if email.Error != nil{
 			log.Fatal(email.Error)
 		}
