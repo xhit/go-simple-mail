@@ -247,7 +247,7 @@ func (msg *message) addFiles(files []*File, inline bool) {
 		if inline {
 			header.Set("Content-Disposition", "inline;\n \tfilename=\""+encodedFilename+`"`)
 			if len(file.ContentID) > 0 {
-				header.Set("Content-ID", "<"+msg.getCID(file.ContentID)+">")
+				header.Set("Content-ID", "<"+file.ContentID+">")
 			} else {
 				header.Set("Content-ID", "<"+msg.getCID(file.Name)+">")
 			}
