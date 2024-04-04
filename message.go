@@ -83,7 +83,14 @@ func (msg *message) getCID(text string) (cid string) {
 
 // replaceCIDs replaces the CIDs found in a text string
 // with generated ones
-func (msg *message) replaceCIDs(text string) string {
+func (msg *message) replaceCIDs(input []byte) []byte {
+	if len(msg.cids) == 0 {
+		// One process replaceCIDs if we have anything to replace
+		return input
+	}
+
+	text := string(input)
+
 	// regular expression to find cids
 	re := regexp.MustCompile(`(src|href)="cid:(.*?)"`)
 	// replace all of the found cids with generated ones
@@ -92,7 +99,7 @@ func (msg *message) replaceCIDs(text string) string {
 		text = strings.Replace(text, "cid:"+matches[2], "cid:"+cid, -1)
 	}
 
-	return text
+	return []byte(text)
 }
 
 // openMultipart creates a new part of a multipart message
@@ -211,7 +218,7 @@ func (msg *message) writeBody(body []byte, encoding encoding) {
 }
 
 func (msg *message) addBody(contentType string, body []byte) {
-	body = []byte(msg.replaceCIDs(string(body)))
+	body = msg.replaceCIDs(body)
 
 	header := make(textproto.MIMEHeader)
 	header.Set("Content-Type", contentType+"; charset="+msg.charset)
@@ -240,7 +247,7 @@ func (msg *message) addFiles(files []*File, inline bool) {
 		if inline {
 			header.Set("Content-Disposition", "inline;\n \tfilename=\""+encodedFilename+`"`)
 			if len(file.ContentID) > 0 {
-				header.Set("Content-ID", "<"+msg.getCID(file.ContentID)+">")
+				header.Set("Content-ID", "<"+file.ContentID+">")
 			} else {
 				header.Set("Content-ID", "<"+msg.getCID(file.Name)+">")
 			}
