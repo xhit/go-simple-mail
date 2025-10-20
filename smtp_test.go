@@ -12,6 +12,7 @@ import (
 	"io"
 	"net"
 	"net/textproto"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -554,6 +555,60 @@ QUIT
 			t.Fatalf("Should support SMTPUTF8")
 		}
 		if err := c.mail("user+📧@gmail.com"); err != nil {
+			t.Fatalf("MAIL FROM failed: %s", err)
+		}
+		if err := c.quit(); err != nil {
+			t.Fatalf("QUIT failed: %s", err)
+		}
+
+		bcmdbuf.Flush()
+		actualcmds := cmdbuf.String()
+		client := strings.Join(strings.Split(basicClient, "\n"), "\r\n")
+		if client != actualcmds {
+			t.Fatalf("Got:\n%s\nExpected:\n%s", actualcmds, client)
+		}
+	})
+
+	t.Run("ehlo smtputf8 disabled by env", func(t *testing.T) {
+		const (
+			basicServer = `250-mx.google.com at your service
+250-SIZE 35651584
+250-8BITMIME
+250 SMTPUTF8
+250 Sender OK
+221 Goodbye
+`
+
+			basicClient = `EHLO localhost
+MAIL FROM:<user@gmail.com> BODY=8BITMIME
+QUIT
+`
+		)
+
+		// Set environment variable to disable SMTPUTF8
+		oldEnv := os.Getenv(EnvDisabledExtensions)
+		defer func() {
+			if oldEnv != "" {
+				os.Setenv(EnvDisabledExtensions, oldEnv)
+			} else {
+				os.Unsetenv(EnvDisabledExtensions)
+			}
+		}()
+		os.Setenv(EnvDisabledExtensions, "SMTPUTF8")
+
+		c, bcmdbuf, cmdbuf := faker(basicServer)
+
+		if err := c.hi("localhost"); err != nil {
+			t.Fatalf("EHLO failed: %s", err)
+		}
+		c.didHello = true
+		if ok, _ := c.extension("8BITMIME"); !ok {
+			t.Fatalf("Should support 8BITMIME")
+		}
+		if ok, _ := c.extension("SMTPUTF8"); ok {
+			t.Fatalf("SMTPUTF8 should be disabled by environment variable")
+		}
+		if err := c.mail("user@gmail.com"); err != nil {
 			t.Fatalf("MAIL FROM failed: %s", err)
 		}
 		if err := c.quit(); err != nil {

@@ -23,6 +23,7 @@ import (
 	"io"
 	"net"
 	"net/textproto"
+	"os"
 	"strings"
 )
 
@@ -135,6 +136,12 @@ func (c *smtpClient) ehlo() error {
 	if mechs, ok := ext["AUTH"]; ok {
 		c.a = strings.Split(mechs, " ")
 	}
+
+	disabledExt := strings.Split(os.Getenv(EnvDisabledExtensions), ",")
+	for _, e := range disabledExt {
+		delete(ext, e)
+	}
+
 	c.ext = ext
 	return err
 }
