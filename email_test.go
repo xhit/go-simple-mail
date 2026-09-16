@@ -24,12 +24,12 @@ func TestSendRace(t *testing.T) {
 	startService(port, responses, 5*time.Second)
 	startService(port2, responses, 0)
 
-	server := NewSMTPClient()
-	server.ConnectTimeout = timeout
-	server.SendTimeout = timeout
-	server.KeepAlive = false
-	server.Host = `127.0.0.1`
-	server.Port = port
+	server := NewSMTPServer(
+		`127.0.0.1`, port,
+		WithConnectTimeout(timeout),
+		WithSendTimeout(timeout),
+		WithKeepAlive(false),
+	)
 
 	smtpClient, err := server.Connect()
 	if err != nil {

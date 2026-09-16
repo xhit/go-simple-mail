@@ -235,14 +235,83 @@ func NewMSG() *Email {
 }
 
 // NewSMTPClient returns the client for send email
+// Deprecated: Use NewSMTPServer instead
 func NewSMTPClient() *SMTPServer {
+	return NewSMTPServer("", 0)
+}
+
+type ServerOption func(*SMTPServer)
+
+func WithAuthentication(auth AuthType) ServerOption {
+	return func(server *SMTPServer) {
+		server.Authentication = auth
+	}
+}
+
+func WithEncryption(encryption Encryption) ServerOption {
+	return func(server *SMTPServer) {
+		server.Encryption = encryption
+	}
+}
+
+func WithUsername(username string) ServerOption {
+	return func(server *SMTPServer) {
+		server.Username = username
+	}
+}
+
+func WithPassword(password string) ServerOption {
+	return func(server *SMTPServer) {
+		server.Password = password
+	}
+}
+
+func WithHelo(helo string) ServerOption {
+	return func(server *SMTPServer) {
+		server.Helo = helo
+	}
+}
+
+func WithConnectTimeout(timeout time.Duration) ServerOption {
+	return func(server *SMTPServer) {
+		server.ConnectTimeout = timeout
+	}
+}
+
+func WithSendTimeout(timeout time.Duration) ServerOption {
+	return func(server *SMTPServer) {
+		server.SendTimeout = timeout
+	}
+}
+
+func WithKeepAlive(keepAlive bool) ServerOption {
+	return func(server *SMTPServer) {
+		server.KeepAlive = keepAlive
+	}
+}
+
+func WithTLSConfig(tlsConfig *tls.Config) ServerOption {
+	return func(server *SMTPServer) {
+		server.TLSConfig = tlsConfig
+	}
+}
+
+// NewSMTPServer returns a new SMTPServer
+func NewSMTPServer(host string, port int, opts ...ServerOption) *SMTPServer {
 	server := &SMTPServer{
 		Authentication: AuthAuto,
 		Encryption:     EncryptionNone,
 		ConnectTimeout: 10 * time.Second,
 		SendTimeout:    10 * time.Second,
 		Helo:           "localhost",
+		Host:           host,
+		Port:           port,
 	}
+
+	for _, opt := range opts {
+		opt(server)
+	}
+
 	return server
 }
 
@@ -1003,10 +1072,10 @@ func SendMessage(from string, recipients []string, msg string, client *SMTPClien
 
 // send does the low level sending of the email
 func send(from string, to []string, msg string, client *SMTPClient) error {
-	//Check if client struct is not nil
+	// Check if client struct is not nil
 	if client != nil {
 
-		//Check if client is not nil
+		// Check if client is not nil
 		if client.Client != nil {
 			var smtpSendChannel chan error
 
