@@ -75,7 +75,7 @@ type SMTPClient struct {
 	Client                    *smtpClient
 	SendTimeout               time.Duration
 	KeepAlive                 bool
-	hasDSNExt                 bool
+	HasDSNExt                 bool
 	preserveOriginalRecipient bool
 	dsn                       []DSN
 }
@@ -956,7 +956,7 @@ func (server *SMTPServer) Connect() (*SMTPClient, error) {
 		Client:      c,
 		KeepAlive:   server.KeepAlive,
 		SendTimeout: server.SendTimeout,
-		hasDSNExt:   hasDSN,
+		HasDSNExt:   hasDSN,
 	}, server.validateAuth(c)
 }
 
@@ -1057,7 +1057,7 @@ func sendMailProcess(from string, to []string, msg string, c *SMTPClient) error 
 	var dsn string
 	var dsnSet bool
 
-	if c.hasDSNExt && len(c.dsn) > 0 {
+	if c.HasDSNExt && len(c.dsn) > 0 {
 		dsn = " NOTIFY="
 		if hasNeverDSN(c.dsn) {
 			dsn += NEVER.String()
