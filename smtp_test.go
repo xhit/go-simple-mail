@@ -27,8 +27,8 @@ type authTest struct {
 var authTests = []authTest{
 	{plainAuthfn("", "user", "pass", "testserver"), []string{}, "PLAIN", []string{"\x00user\x00pass"}},
 	{plainAuthfn("foo", "bar", "baz", "testserver"), []string{}, "PLAIN", []string{"foo\x00bar\x00baz"}},
-	{loginAuthfn("", "bar", "baz", "testserver"), []string{}, "LOGIN", []string{"bar"}},
-	{loginAuthfn("foo", "bar", "baz", "testserver"), []string{}, "LOGIN", []string{"bar"}},
+	{loginAuthfn("", "bar", "baz", "testserver"), []string{}, "LOGIN", []string{""}},
+	{loginAuthfn("foo", "bar", "baz", "testserver"), []string{}, "LOGIN", []string{""}},
 	{cramMD5Authfn("user", "pass"), []string{"<123456.1322876914@testserver>"}, "CRAM-MD5", []string{"", "user 287eb355114cf5c471c26a875f1ca4ae"}},
 }
 
