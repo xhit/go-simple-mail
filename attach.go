@@ -127,10 +127,11 @@ func (email *Email) attachB64(file *File) error {
 	}
 
 	email.attachData(&File{
-		Name:     file.Name,
-		MimeType: file.MimeType,
-		Data:     dec,
-		Inline:   file.Inline,
+		Name:      file.Name,
+		ContentID: file.ContentID,
+		MimeType:  file.MimeType,
+		Data:      dec,
+		Inline:    file.Inline,
 	})
 
 	return nil
@@ -143,10 +144,11 @@ func (email *Email) attachFile(file *File) error {
 	}
 
 	email.attachData(&File{
-		Name:     file.Name,
-		MimeType: file.MimeType,
-		Data:     data,
-		Inline:   file.Inline,
+		Name:      file.Name,
+		ContentID: file.ContentID,
+		MimeType:  file.MimeType,
+		Data:      data,
+		Inline:    file.Inline,
 	})
 
 	return nil
