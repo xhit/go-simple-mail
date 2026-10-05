@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"io"
 	"net"
 	"net/textproto"
@@ -702,6 +703,15 @@ func TestNewClientWithTLS(t *testing.T) {
 	}
 }
 
+// isTextprotoError reports whether err is a *textproto.Error with the given
+// code and message. Comparing the fields instead of err.Error() keeps these
+// tests independent of how net/textproto formats the error text, which newer
+// Go releases changed to quote the server message.
+func isTextprotoError(err error, code int, msg string) bool {
+	var tpErr *textproto.Error
+	return errors.As(err, &tpErr) && tpErr.Code == code && tpErr.Msg == msg
+}
+
 func TestHello(t *testing.T) {
 
 	if len(helloServer) != len(helloClient) {
@@ -732,7 +742,7 @@ func TestHello(t *testing.T) {
 			err = c.hi("customhost")
 		case 1:
 			err = c.startTLS(nil)
-			if err.Error() == "502 Not implemented" {
+			if isTextprotoError(err, 502, "Not implemented") {
 				err = nil
 			}
 		case 2:
@@ -848,7 +858,7 @@ func TestAuthFailed(t *testing.T) {
 
 	if err == nil {
 		t.Error("Auth: expected error; got none")
-	} else if err.Error() != "535 Invalid credentials\nplease see www.example.com" {
+	} else if !isTextprotoError(err, 535, "Invalid credentials\nplease see www.example.com") {
 		t.Errorf("Auth: got error: %v, want: %s", err, "535 Invalid credentials\nplease see www.example.com")
 	}
 
