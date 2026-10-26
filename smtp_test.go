@@ -1073,3 +1073,49 @@ qgkeluku4GjxRlDMBuXk94xOBEinUs+p/hwP1Alll80Tpg==
 -----END RSA TESTING KEY-----`))
 
 func testingKey(s string) string { return strings.ReplaceAll(s, "TESTING KEY", "PRIVATE KEY") }
+
+func TestSMTPConnectSTARTTLSNotSupported(t *testing.T) {
+	tests := []struct {
+		name    string
+		enc     Encryption
+		require bool
+		wantErr bool
+	}{
+		{"Verify error returned When STARTTLS is required and server does not offer it", EncryptionSTARTTLS, true, true},
+		{"Verify error returned When deprecated TLS is required and server does not offer STARTTLS", EncryptionTLS, true, true},
+		{"Verify plaintext fallback When STARTTLS is not required and server does not offer it", EncryptionSTARTTLS, false, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client, server := net.Pipe()
+			defer client.Close()
+			defer server.Close()
+
+			go func() {
+				send := smtpSender{server}.send
+				send("220 127.0.0.1 ESMTP service ready")
+				s := bufio.NewScanner(server)
+				for s.Scan() {
+					if s.Text() == "EHLO localhost" {
+						send("250-127.0.0.1 ESMTP offers a warm hug of welcome")
+						send("250 Ok")
+					}
+				}
+			}()
+
+			c, err := smtpConnect(client, "127.0.0.1", "25", "", tt.enc, nil, tt.require)
+			if tt.wantErr {
+				if !errors.Is(err, ErrSTARTTLSNotSupported) {
+					t.Errorf("smtpConnect(%v, require=%v) error = %v; want %v", tt.enc, tt.require, err, ErrSTARTTLSNotSupported)
+				}
+				if c != nil {
+					t.Errorf("smtpConnect(%v, require=%v) client = %v; want nil", tt.enc, tt.require, c)
+				}
+				return
+			}
+			if err != nil || c == nil {
+				t.Errorf("smtpConnect(%v, require=%v) = (%v, %v); want client and nil error", tt.enc, tt.require, c, err)
+			}
+		})
+	}
+}
