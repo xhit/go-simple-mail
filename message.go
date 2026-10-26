@@ -46,6 +46,18 @@ func encodeHeader(text string, charset string, encoding headerEncoding, usedChar
 	return buf.String()
 }
 
+// encodeQuotedParam encodes text like encodeHeader, for a parameter value
+// written inside double quotes.
+func encodeQuotedParam(text string, charset string, encoding headerEncoding, usedChars int) string {
+	buf := new(bytes.Buffer)
+
+	encoder := newEncoder(buf, charset, encoding, usedChars)
+	encoder.quoted = true
+	encoder.encode([]byte(text))
+
+	return buf.String()
+}
+
 // getHeaders returns the message headers
 func (msg *message) getHeaders() (headers string) {
 	// if the date header isn't set, set it
@@ -239,10 +251,10 @@ func (msg *message) addFiles(files []*File, inline bool) {
 		header.Set("Content-Type",
 			fmt.Sprintf("%s;\n \tname=\"%s\"",
 				file.MimeType,
-				encodeHeader(escapeQuotes(file.Name), msg.charset, msg.headerEncoding, 6)))
+				encodeQuotedParam(escapeQuotes(file.Name), msg.charset, msg.headerEncoding, 6)))
 		header.Set("Content-Transfer-Encoding", encoding.string())
 
-		encodedFilename := encodeHeader(escapeQuotes(file.Name), msg.charset, msg.headerEncoding, 10)
+		encodedFilename := encodeQuotedParam(escapeQuotes(file.Name), msg.charset, msg.headerEncoding, 10)
 
 		if inline {
 			header.Set("Content-Disposition", "inline;\n \tfilename=\""+encodedFilename+`"`)

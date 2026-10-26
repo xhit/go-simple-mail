@@ -127,6 +127,46 @@ func TestAttachments(t *testing.T) {
 	})
 }
 
+func TestAttachmentLongFileName(t *testing.T) {
+	names := []string{
+		"Quarterly_Financial_Report_2026_Q3_Final_Version_Approved_by_the_CFO.pdf",
+		"Quarterly Financial Report 2026 Q3 - Final Version approved by the CFO and the board.pdf",
+	}
+	for _, name := range names {
+		msg := NewMSG().SetBody(TextPlain, "see attachment").Attach(&File{Data: []byte("foo"), Name: name})
+		if msg.Error != nil {
+			t.Fatal(msg.Error)
+		}
+
+		parsed, err := mail.ReadMessage(strings.NewReader(msg.GetMessage()))
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, params, err := mime.ParseMediaType(parsed.Header.Get("Content-Type"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		reader := multipart.NewReader(parsed.Body, params["boundary"])
+		if _, err := reader.NextPart(); err != nil {
+			t.Fatal(err)
+		}
+		attachment, err := reader.NextPart()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := attachment.FileName(); got != name {
+			t.Errorf("got filename %q, want %q", got, name)
+		}
+		_, ctParams, err := mime.ParseMediaType(attachment.Header.Get("Content-Type"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if ctParams["name"] != name {
+			t.Errorf("got name %q, want %q", ctParams["name"], name)
+		}
+	}
+}
+
 func TestInlineContentID(t *testing.T) {
 	const contentID = "image@example.com"
 	const body = `<img src="cid:image@example.com">`
