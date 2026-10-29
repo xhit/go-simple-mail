@@ -65,6 +65,12 @@ type SMTPServer struct {
 	KeepAlive      bool
 	TLSConfig      *tls.Config
 
+	// RequireSTARTTLS makes Connect fail with ErrSTARTTLSNotSupported when
+	// Encryption is EncryptionSTARTTLS and the server does not advertise the
+	// STARTTLS extension. When false (the default), the connection silently
+	// continues without encryption in that case.
+	RequireSTARTTLS bool
+
 	// use custom dialer
 	CustomConn net.Conn
 }
@@ -103,6 +109,11 @@ const (
 	// EncryptionSTARTTLS sets encryption type to STARTTLS when sending email
 	EncryptionSTARTTLS
 )
+
+// ErrSTARTTLSNotSupported is returned when STARTTLS encryption is requested
+// with SMTPServer.RequireSTARTTLS but the server does not advertise the
+// STARTTLS extension.
+var ErrSTARTTLSNotSupported = errors.New("server does not support STARTTLS")
 
 // TODO: Remove last two indexes
 var encryptionTypes = [...]string{"None", "SSL/TLS", "STARTTLS", "SSL/TLS", "STARTTLS"}
@@ -833,7 +844,7 @@ func dial(customConn net.Conn, host string, port string, encryption Encryption, 
 
 // smtpConnect connects to the smtp server and starts TLS and passes auth
 // if necessary
-func smtpConnect(customConn net.Conn, host, port, helo string, encryption Encryption, config *tls.Config) (*smtpClient, error) {
+func smtpConnect(customConn net.Conn, host, port, helo string, encryption Encryption, config *tls.Config, requireSTARTTLS bool) (*smtpClient, error) {
 	// connect to the mail server
 	c, err := dial(customConn, host, port, encryption, config)
 
@@ -859,6 +870,9 @@ func smtpConnect(customConn net.Conn, host, port, helo string, encryption Encryp
 				c.close()
 				return nil, fmt.Errorf("Mail Error on STARTTLS: %w", err)
 			}
+		} else if requireSTARTTLS {
+			c.close()
+			return nil, fmt.Errorf("Mail Error on STARTTLS: %w", ErrSTARTTLSNotSupported)
 		}
 	}
 
@@ -929,7 +943,7 @@ func (server *SMTPServer) Connect() (*SMTPClient, error) {
 	if server.ConnectTimeout != 0 {
 		smtpConnectChannel = make(chan error, 2)
 		go func() {
-			c, err = smtpConnect(server.CustomConn, server.Host, fmt.Sprintf("%d", server.Port), server.Helo, server.Encryption, tlsConfig)
+			c, err = smtpConnect(server.CustomConn, server.Host, fmt.Sprintf("%d", server.Port), server.Helo, server.Encryption, tlsConfig, server.RequireSTARTTLS)
 			// send the result
 			smtpConnectChannel <- err
 		}()
@@ -944,7 +958,7 @@ func (server *SMTPServer) Connect() (*SMTPClient, error) {
 		}
 	} else {
 		// no ConnectTimeout, just fire the connect
-		c, err = smtpConnect(server.CustomConn, server.Host, fmt.Sprintf("%d", server.Port), server.Helo, server.Encryption, tlsConfig)
+		c, err = smtpConnect(server.CustomConn, server.Host, fmt.Sprintf("%d", server.Port), server.Helo, server.Encryption, tlsConfig, server.RequireSTARTTLS)
 		if err != nil {
 			return nil, err
 		}
