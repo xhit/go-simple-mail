@@ -17,6 +17,9 @@ type encoder struct {
 	charset   string
 	encoding  headerEncoding
 	usedChars int
+	// quoted is set when the text goes inside a quoted-string, where folding
+	// whitespace becomes part of the value.
+	quoted bool
 }
 
 // newEncoder returns a new mime header encoder that writes to w. The c
@@ -24,7 +27,7 @@ type encoder struct {
 // encoded. The u parameter indicates how many characters have been used
 // already.
 func newEncoder(w io.Writer, c string, encoding headerEncoding, u int) *encoder {
-	return &encoder{bufio.NewWriter(w), strings.ToUpper(c), encoding, u}
+	return &encoder{bufio.NewWriter(w), strings.ToUpper(c), encoding, u, false}
 }
 
 // encode encodes p using the encoding scheme specified in e
@@ -65,8 +68,9 @@ func (e *encoder) encode(p []byte) (n int, err error) {
 			}
 			newWord += word
 
-			// check line length
-			if (e.usedChars+len(lineBuffer)+len(newWord)) > maxLineLength && (lineBuffer != "" || e.usedChars != 0) {
+			// check line length. Inside a quoted-string the first word is not moved to a
+			// new line, as the folding whitespace would be added to the value.
+			if (e.usedChars+len(lineBuffer)+len(newWord)) > maxLineLength && (lineBuffer != "" || (e.usedChars != 0 && !e.quoted)) {
 				output.WriteString(lineBuffer + "\r\n")
 
 				// first word on newline needs a space in front
