@@ -110,3 +110,13 @@ func write(conn net.Conn, command string) {
 	log.Printf("WRITE:%s", command)
 	conn.Write([]byte(command + "\n"))
 }
+
+func TestGetFromPrefersReturnPath(t *testing.T) {
+	msg := NewMSG().
+		SetFrom("from@example.com").
+		SetReturnPath("bounce@example.com")
+
+	if got := msg.GetFrom(); got != "bounce@example.com" {
+		t.Fatalf("GetFrom() = %q, want %q", got, "bounce@example.com")
+	}
+}

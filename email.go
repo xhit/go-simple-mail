@@ -779,7 +779,7 @@ func (email *Email) GetMessage() string {
 
 // Send sends the composed email
 func (email *Email) Send(client *SMTPClient) error {
-	return email.SendEnvelopeFrom(email.from, client)
+	return email.SendEnvelopeFrom(email.GetFrom(), client)
 }
 
 // SendEnvelopeFrom sends the composed email with envelope
