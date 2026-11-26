@@ -3,7 +3,7 @@ package mail
 import (
 	//"fmt"
 	"bytes"
-	//"strings"
+	"strings"
 	"testing"
 )
 
@@ -124,5 +124,47 @@ func testWriter(t *testing.T, binary bool) {
 		if buf.String() != test.want {
 			t.Errorf("Charset: %s Used Chars: %d Write(%q), \r\ngot:\r\n%q\r\nwant:\r\n%q", test.charset, test.usedChars, test.in, buf, test.want)
 		}
+	}
+}
+
+// A horizontal tab is a valid character in an unstructured header field
+// (RFC 5322 section 2.2.1 and 3.2.2): it must reach the wire instead of
+// being silently deleted. Removing CR and LF is enough to prevent header
+// injection.
+func TestSecureHeaderPreservesTab(t *testing.T) {
+	tests := []struct {
+		in   string
+		want string
+	}{
+		{"tab\tinside", "tab\tinside"},
+		{"\ttab", "tab"},
+		{"tab\t", "tab"},
+		{"multi\t\ttab", "multi\t\ttab"},
+		{"no\r\ninjection", "noinjection"},
+	}
+	for _, test := range tests {
+		if got := string(secureHeader([]byte(test.in))); got != test.want {
+			t.Errorf("secureHeader(%q) = %q, want %q", test.in, got, test.want)
+		}
+	}
+}
+
+func TestSubjectWithTabRoundTrip(t *testing.T) {
+	msg := NewMSG().SetBody(TextPlain, "body").SetSubject("tab\tinside")
+	if msg.Error != nil {
+		t.Fatalf("unexpected error: %v", msg.Error)
+	}
+	raw := msg.GetMessage()
+	found := false
+	for _, line := range strings.Split(raw, "\r\n") {
+		if strings.HasPrefix(line, "Subject:") {
+			found = true
+			if line != "Subject: tab\tinside" {
+				t.Errorf("subject line = %q, want %q", line, "Subject: tab\tinside")
+			}
+		}
+	}
+	if !found {
+		t.Error("no Subject header written")
 	}
 }
