@@ -165,7 +165,6 @@ func secureHeader(text []byte) []byte {
 	secureValue := strings.TrimSpace(string(text))
 	secureValue = strings.Replace(secureValue, "\r", "", -1)
 	secureValue = strings.Replace(secureValue, "\n", "", -1)
-	secureValue = strings.Replace(secureValue, "\t", "", -1)
 
 	return []byte(secureValue)
 }
